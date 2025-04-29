@@ -14,8 +14,6 @@ function App() {
   const [pdfUrl, setPdfUrl] = useState('');
   const [serverPdfUrl, setServerPdfUrl] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [captcha, setCaptcha] = useState({ question: '', sessionId: '' });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
 
   // Содержимое для первой и второй страницы
   const pageOneTitle = 'Рынок недвижимости в 2025 году';
@@ -146,9 +144,6 @@ function App() {
         document.body.removeChild(element);
         setLoading(false);
         setPdfGenerated(true);
-        
-        // Upload the PDF to the server
-        uploadPdfToServer(blob);
       }).catch(error => {
         console.error('PDF generation error:', error);
         document.body.removeChild(element);
@@ -157,33 +152,15 @@ function App() {
       });
   };
 
-  // Function to fetch captcha from server
-  const fetchCaptcha = async () => {
-    try {
-      // Get the base URL dynamically
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? window.location.origin 
-        : 'http://localhost:3001';
-      
-      const response = await fetch(`${baseUrl}/api/captcha`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch captcha');
-      }
-      
-      const data = await response.json();
-      setCaptcha({
-        question: data.question,
-        sessionId: data.sessionId
-      });
-    } catch (error) {
-      console.error('Error fetching captcha:', error);
-    }
+  // Function to generate PDF and then upload it
+  const generatePdfAndUpload = () => {
+    generatePdf();
   };
 
-  // Fetch captcha when PDF is generated
   useEffect(() => {
-    if (pdfGenerated && pdfBlob) {
-      fetchCaptcha();
+    // Upload PDF to server when generated
+    if (pdfGenerated && pdfBlob && !serverPdfUrl && !uploading) {
+      uploadPdfToServer(pdfBlob);
     }
   }, [pdfGenerated, pdfBlob]);
 
@@ -191,18 +168,9 @@ function App() {
   const uploadPdfToServer = async (pdfBlob) => {
     setUploading(true);
     try {
-      // Check if captcha is filled
-      if (!captchaAnswer) {
-        alert('Пожалуйста, решите капчу перед загрузкой файла');
-        setUploading(false);
-        return;
-      }
-
       // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', new File([pdfBlob], 'nedvizhimost-document.pdf', { type: 'application/pdf' }));
-      formData.append('captchaSessionId', captcha.sessionId);
-      formData.append('captchaAnswer', captchaAnswer);
       
       // Get the base URL dynamically
       const baseUrl = process.env.NODE_ENV === 'production' 
@@ -229,9 +197,6 @@ function App() {
       console.error('Error uploading PDF:', error);
       setUploading(false);
       alert(`Не удалось загрузить документ на сервер: ${error.message}. Используется локальная версия.`);
-      // Fetch new captcha if the current one failed
-      fetchCaptcha();
-      setCaptchaAnswer('');
     }
   };
 
@@ -303,7 +268,7 @@ function App() {
         <h1>Генератор PDF о недвижимости</h1>
         <div className="pdf-generator">
           <button 
-            onClick={generatePdf}
+            onClick={generatePdfAndUpload}
             disabled={loading || !imageReady}
           >
             {loading ? 'Создание PDF...' : 'Скачать PDF о недвижимости'}
@@ -314,32 +279,6 @@ function App() {
           {pdfGenerated && (
             <div className="share-bar">
               <p>Поделиться документом:</p>
-              {!serverPdfUrl && (
-                <div className="captcha-container">
-                  <p className="captcha-question">{captcha.question}</p>
-                  <input
-                    type="text"
-                    className="captcha-input"
-                    value={captchaAnswer}
-                    onChange={(e) => setCaptchaAnswer(e.target.value)}
-                    placeholder="Введите ответ"
-                  />
-                  <button 
-                    className="upload-button" 
-                    onClick={() => uploadPdfToServer(pdfBlob)}
-                    disabled={uploading || !captcha.sessionId}
-                  >
-                    {uploading ? "Загрузка..." : "Загрузить для обмена"}
-                  </button>
-                  <button 
-                    className="refresh-captcha" 
-                    onClick={fetchCaptcha}
-                    disabled={uploading}
-                  >
-                    Обновить капчу
-                  </button>
-                </div>
-              )}
               {uploading && <p className="upload-status">Загрузка документа на сервер...</p>}
               {serverPdfUrl && <p className="upload-success">Документ успешно загружен и готов к отправке!</p>}
               <div className="share-buttons">

@@ -11,6 +11,10 @@
 # production
 /build
 
+# server uploads
+/server/uploads
+/pdf-server/uploads
+
 # misc
 .DS_Store
 .env.local

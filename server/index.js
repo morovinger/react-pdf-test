@@ -20,7 +20,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
+  console.log('Creating uploads directory...');
   fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('Uploads directory created at:', uploadDir);
 }
 
 // Configure multer for file storage
@@ -36,84 +38,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Simple captcha session storage
-// In a production app, you'd use a proper session store or database
-const captchaSessions = {};
-
-// Generate a simple math captcha
-app.get('/api/captcha', (req, res) => {
-  // Generate two random numbers between 1 and 10
-  const num1 = Math.floor(Math.random() * 10) + 1;
-  const num2 = Math.floor(Math.random() * 10) + 1;
-  
-  // Create a session ID
-  const sessionId = Date.now().toString() + Math.random().toString(36).substring(2, 15);
-  
-  // Store the expected answer
-  captchaSessions[sessionId] = {
-    answer: num1 + num2,
-    createdAt: Date.now() // For cleanup purposes
-  };
-  
-  // Clean up old sessions (older than 10 minutes)
-  const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
-  Object.keys(captchaSessions).forEach(key => {
-    if (captchaSessions[key].createdAt < tenMinutesAgo) {
-      delete captchaSessions[key];
-    }
-  });
-  
-  // Send the question and session ID
-  res.json({
-    sessionId: sessionId,
-    question: `${num1} + ${num2} = ?`
-  });
-});
-
-// Verify captcha middleware
-const verifyCaptcha = (req, res, next) => {
-  const { captchaSessionId, captchaAnswer } = req.body;
-  
-  // Check if session exists
-  if (!captchaSessionId || !captchaSessions[captchaSessionId]) {
-    return res.status(403).json({ error: 'Invalid or expired captcha session' });
-  }
-  
-  // Check answer
-  const expectedAnswer = captchaSessions[captchaSessionId].answer;
-  const providedAnswer = parseInt(captchaAnswer, 10);
-  
-  if (isNaN(providedAnswer) || providedAnswer !== expectedAnswer) {
-    return res.status(403).json({ error: 'Incorrect captcha answer' });
-  }
-  
-  // Captcha passed, remove the session to prevent reuse
-  delete captchaSessions[captchaSessionId];
-  
-  // Continue to the next middleware
-  next();
-};
-
-// File upload endpoint with captcha verification
+// File upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
-  // First check captcha
-  const { captchaSessionId, captchaAnswer } = req.body;
-  
-  if (!captchaSessionId || !captchaSessions[captchaSessionId]) {
-    return res.status(403).json({ error: 'Invalid or expired captcha session' });
-  }
-  
-  const expectedAnswer = captchaSessions[captchaSessionId].answer;
-  const providedAnswer = parseInt(captchaAnswer, 10);
-  
-  if (isNaN(providedAnswer) || providedAnswer !== expectedAnswer) {
-    return res.status(403).json({ error: 'Incorrect captcha answer' });
-  }
-  
-  // Captcha passed, remove the session to prevent reuse
-  delete captchaSessions[captchaSessionId];
-
-  // Now check if file was uploaded
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -132,9 +58,7 @@ app.get('/api', (req, res) => {
   res.json({
     status: 'PDF Upload Server is running',
     uploadEndpoint: '/upload',
-    method: 'POST',
-    captchaEndpoint: '/api/captcha',
-    method: 'GET'
+    method: 'POST'
   });
 });
 
@@ -154,5 +78,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API status available at http://localhost:${PORT}/api`);
   console.log(`File upload endpoint: http://localhost:${PORT}/upload`);
-  console.log(`Captcha endpoint: http://localhost:${PORT}/api/captcha`);
 }); 
