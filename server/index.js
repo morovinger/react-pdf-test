@@ -6,7 +6,9 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SERVER_URL = process.env.SERVER_URL || 'http://104.36.85.100:3000';
+
+// Hardcoded server URL - this overrides any dynamic host detection
+const SERVER_URL = 'http://104.36.85.100:3000';
 
 // Enable CORS
 app.use(cors());
@@ -45,7 +47,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
   
-  // Create the URL to the uploaded file using the server IP instead of localhost
+  // ALWAYS use the hardcoded SERVER_URL instead of dynamic detection
   const fileUrl = `${SERVER_URL}/uploads/${req.file.filename}`;
   
   console.log(`File uploaded: ${req.file.filename}`);
@@ -81,7 +83,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Server URL: ${SERVER_URL}`);
+  console.log(`Server URL (hardcoded): ${SERVER_URL}`);
   console.log(`API status available at ${SERVER_URL}/api`);
   console.log(`File upload endpoint: ${SERVER_URL}/upload`);
 }); 
