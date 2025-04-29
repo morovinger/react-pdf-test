@@ -48,64 +48,145 @@ function App() {
     img.src = placeholderImage;
   }, []);
 
-  // Simple PDF generation using html2pdf with minimal options
+  // Improved PDF generation to eliminate empty pages
   const generatePdf = () => {
     setLoading(true);
     
-    // Create a separate container div outside the document flow
+    // Create a container for PDF content
     const element = document.createElement('div');
+    element.className = 'pdf-container';
     element.innerHTML = `
-      <div id="pdf-content" style="width:170mm; margin:0 auto; padding:10mm; font-family:'Arial',sans-serif; box-sizing:border-box;">
-        <h1 style="font-size:24pt; text-align:center; margin-bottom:15mm;">Документ о недвижимости</h1>
-        <p style="font-size:12pt; margin-bottom:15mm;">Создано: ${new Date().toLocaleString('ru-RU')}</p>
-        
-        <h2 style="font-size:18pt; margin-top:5mm; margin-bottom:5mm; word-wrap:break-word;">${pageOneTitle}</h2>
-        ${pageOneContent.split('\n\n').map(p => 
-          `<p style="text-align:justify; margin-bottom:5mm; font-size:11pt; line-height:1.5; word-break:normal; word-wrap:break-word;">${p}</p>`
-        ).join('')}
-        
-        <div style="text-align:center; margin:5mm 0;">
-          <img src="${imageBase64}" alt="Современный жилой комплекс" style="max-width:140mm; max-height:80mm; object-fit:contain;">
-          <p style="font-style:italic; margin-top:2mm;">Современный жилой комплекс</p>
+      <div class="pdf-document">
+        <!-- Title page -->
+        <div class="pdf-page">
+          <h1 class="doc-title">Документ о недвижимости</h1>
+          <p class="doc-date">Создано: ${new Date().toLocaleString('ru-RU')}</p>
+          
+          <h2 class="page-title">${pageOneTitle}</h2>
+          ${pageOneContent.split('\n\n').map(p => 
+            `<p class="content-paragraph">${p}</p>`
+          ).join('')}
+          
+          <div class="image-wrapper">
+            <img src="${imageBase64}" alt="Современный жилой комплекс" class="doc-image">
+            <p class="image-caption">Современный жилой комплекс</p>
+          </div>
         </div>
-        
-        <div style="page-break-before:always;"></div>
-        
-        <h2 style="font-size:18pt; margin-top:10mm; margin-bottom:5mm; word-wrap:break-word;">${pageTwoTitle}</h2>
-        ${pageTwoContent.split('\n\n').map(p => 
-          `<p style="text-align:justify; margin-bottom:5mm; font-size:11pt; line-height:1.5; word-break:normal; word-wrap:break-word;">${p}</p>`
-        ).join('')}
-        
-        <div style="text-align:center; margin:10mm 0;">
-          <img src="${imageBase64}" alt="График роста цен на недвижимость" style="max-width:140mm; max-height:80mm; object-fit:contain;">
-          <p style="font-style:italic; margin-top:2mm;">График роста цен на недвижимость</p>
+
+        <!-- Second page -->
+        <div class="pdf-page">
+          <h2 class="page-title">${pageTwoTitle}</h2>
+          ${pageTwoContent.split('\n\n').map(p => 
+            `<p class="content-paragraph">${p}</p>`
+          ).join('')}
+          
+          <div class="image-wrapper">
+            <img src="${imageBase64}" alt="График роста цен на недвижимость" class="doc-image">
+            <p class="image-caption">График роста цен на недвижимость</p>
+          </div>
         </div>
       </div>
     `;
+
+    // Add custom styles for PDF generation
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      .pdf-container {
+        font-family: 'Arial', sans-serif;
+        color: #333;
+        line-height: 1.4;
+      }
+      .pdf-document {
+        width: 210mm;
+        box-sizing: border-box;
+      }
+      .pdf-page {
+        padding: 15mm;
+        page-break-after: always;
+      }
+      .doc-title {
+        font-size: 24pt;
+        text-align: center;
+        margin-bottom: 10mm;
+        color: #2c3e50;
+      }
+      .doc-date {
+        font-size: 10pt;
+        margin-bottom: 15mm;
+        color: #7f8c8d;
+      }
+      .page-title {
+        font-size: 18pt;
+        margin-bottom: 8mm;
+        color: #2c3e50;
+      }
+      .content-paragraph {
+        text-align: justify;
+        margin-bottom: 4mm;
+        font-size: 11pt;
+      }
+      .image-wrapper {
+        text-align: center;
+        margin: 10mm 0;
+      }
+      .doc-image {
+        max-width: 160mm;
+        max-height: 80mm;
+        object-fit: contain;
+      }
+      .image-caption {
+        font-style: italic;
+        font-size: 9pt;
+        margin-top: 2mm;
+        color: #7f8c8d;
+      }
+    `;
     
-    // Add the element to the document
+    // Add elements to the document
+    document.body.appendChild(styleElement);
     document.body.appendChild(element);
     
-    // Simple options
+    // Optimized options for better pagination
     const options = {
-      margin: 10,
+      margin: [0, 0, 0, 0], // margins handled by padding in the content
       filename: 'nedvizhimost-document.pdf',
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        allowTaint: true,
+        logging: false
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { 
+        mode: ['css', 'legacy'],
+        before: '.pdf-page'
+      }
     };
     
     // Generate PDF
-    html2pdf().from(element).set(options).save().then(() => {
-      // Cleanup after completion
-      document.body.removeChild(element);
-      setLoading(false);
-    }).catch(error => {
-      console.error('PDF generation error:', error);
-      document.body.removeChild(element);
-      setLoading(false);
-      alert('Ошибка при создании PDF. Пожалуйста, попробуйте еще раз.');
-    });
+    html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+      .then(() => {
+        // Cleanup after completion
+        document.body.removeChild(element);
+        document.body.removeChild(styleElement);
+        setLoading(false);
+      }).catch(error => {
+        console.error('PDF generation error:', error);
+        document.body.removeChild(element);
+        document.body.removeChild(styleElement);
+        setLoading(false);
+        alert('Ошибка при создании PDF. Пожалуйста, попробуйте еще раз.');
+      });
   };
 
   return (
@@ -151,7 +232,7 @@ function App() {
             <div className="placeholder-box">
               <img 
                 src={placeholderImage} 
-                alt="График роста цен на недвижимость" 
+                alt="График роста цен на недвижимости" 
                 style={{width: '100%', height: 'auto', maxHeight: '300px'}} 
               />
             </div>
