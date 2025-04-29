@@ -6,6 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const SERVER_URL = process.env.SERVER_URL || 'http://104.36.85.100:3000';
 
 // Enable CORS
 app.use(cors());
@@ -44,8 +45,11 @@ app.post('/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
   
-  // Create the URL to the uploaded file
-  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  // Create the URL to the uploaded file using the server IP instead of localhost
+  const fileUrl = `${SERVER_URL}/uploads/${req.file.filename}`;
+  
+  console.log(`File uploaded: ${req.file.filename}`);
+  console.log(`File URL: ${fileUrl}`);
   
   res.json({
     message: 'File uploaded successfully',
@@ -58,7 +62,8 @@ app.get('/api', (req, res) => {
   res.json({
     status: 'PDF Upload Server is running',
     uploadEndpoint: '/upload',
-    method: 'POST'
+    method: 'POST',
+    serverUrl: SERVER_URL
   });
 });
 
@@ -76,6 +81,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API status available at http://localhost:${PORT}/api`);
-  console.log(`File upload endpoint: http://localhost:${PORT}/upload`);
+  console.log(`Server URL: ${SERVER_URL}`);
+  console.log(`API status available at ${SERVER_URL}/api`);
+  console.log(`File upload endpoint: ${SERVER_URL}/upload`);
 }); 
