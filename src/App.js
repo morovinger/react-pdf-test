@@ -9,6 +9,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [imageBase64, setImageBase64] = useState('');
+  const [pdfGenerated, setPdfGenerated] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [serverPdfUrl, setServerPdfUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [captcha, setCaptcha] = useState({ question: '', sessionId: '' });
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
 
   // Содержимое для первой и второй страницы
   const pageOneTitle = 'Рынок недвижимости в 2025 году';
@@ -48,7 +55,16 @@ function App() {
     img.src = placeholderImage;
   }, []);
 
-  // Improved PDF generation to eliminate empty pages
+  // Cleanup PDF URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
+  // Improved PDF generation to eliminate empty pages and store the PDF blob
   const generatePdf = () => {
     setLoading(true);
     
@@ -109,21 +125,176 @@ function App() {
       }
     };
     
-    // Generate PDF
+    // Generate PDF as blob instead of saving directly
     html2pdf()
       .from(element)
       .set(options)
-      .save()
-      .then(() => {
+      .outputPdf('blob')
+      .then((blob) => {
+        // Store the blob and create a URL for it
+        setPdfBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+        
+        // Manually trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'nedvizhimost-document.pdf';
+        link.click();
+        
         // Cleanup after completion
         document.body.removeChild(element);
         setLoading(false);
+        setPdfGenerated(true);
+        
+        // Upload the PDF to the server
+        uploadPdfToServer(blob);
       }).catch(error => {
         console.error('PDF generation error:', error);
         document.body.removeChild(element);
         setLoading(false);
         alert('Ошибка при создании PDF. Пожалуйста, попробуйте еще раз.');
       });
+  };
+
+  // Function to fetch captcha from server
+  const fetchCaptcha = async () => {
+    try {
+      // Get the base URL dynamically
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? window.location.origin 
+        : 'http://localhost:3001';
+      
+      const response = await fetch(`${baseUrl}/api/captcha`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch captcha');
+      }
+      
+      const data = await response.json();
+      setCaptcha({
+        question: data.question,
+        sessionId: data.sessionId
+      });
+    } catch (error) {
+      console.error('Error fetching captcha:', error);
+    }
+  };
+
+  // Fetch captcha when PDF is generated
+  useEffect(() => {
+    if (pdfGenerated && pdfBlob) {
+      fetchCaptcha();
+    }
+  }, [pdfGenerated, pdfBlob]);
+
+  // Function to upload PDF to server
+  const uploadPdfToServer = async (pdfBlob) => {
+    setUploading(true);
+    try {
+      // Check if captcha is filled
+      if (!captchaAnswer) {
+        alert('Пожалуйста, решите капчу перед загрузкой файла');
+        setUploading(false);
+        return;
+      }
+
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('file', new File([pdfBlob], 'nedvizhimost-document.pdf', { type: 'application/pdf' }));
+      formData.append('captchaSessionId', captcha.sessionId);
+      formData.append('captchaAnswer', captchaAnswer);
+      
+      // Get the base URL dynamically
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? window.location.origin 
+        : 'http://localhost:3001';
+      
+      // Send the file to your server endpoint
+      const response = await fetch(`${baseUrl}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload file');
+      }
+      
+      const data = await response.json();
+      
+      // Save the URL returned from the server
+      setServerPdfUrl(data.fileUrl);
+      setUploading(false);
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      setUploading(false);
+      alert(`Не удалось загрузить документ на сервер: ${error.message}. Используется локальная версия.`);
+      // Fetch new captcha if the current one failed
+      fetchCaptcha();
+      setCaptchaAnswer('');
+    }
+  };
+
+  // Share handlers updated to share the server PDF URL
+  const shareToFacebook = () => {
+    const urlToShare = serverPdfUrl || window.location.href;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlToShare)}`, '_blank');
+  };
+
+  const shareToVK = () => {
+    const urlToShare = serverPdfUrl || window.location.href;
+    window.open(`https://vk.com/share.php?url=${encodeURIComponent(urlToShare)}`, '_blank');
+  };
+
+  const shareToTelegram = () => {
+    if (serverPdfUrl) {
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(serverPdfUrl)}&text=Документ о недвижимости`, '_blank');
+    } else if (pdfUrl) {
+      // Fallback to Web Share API or local URL if server URL is not available
+      if (navigator.share) {
+        navigator.share({
+          title: 'Документ о недвижимости',
+          files: [new File([pdfBlob], 'nedvizhimost-document.pdf', { type: 'application/pdf' })]
+        }).catch(() => {
+          window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=Документ о недвижимости`, '_blank');
+        });
+      } else {
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=Документ о недвижимости`, '_blank');
+      }
+    } else {
+      alert('Пожалуйста, сначала создайте PDF документ.');
+    }
+  };
+  
+  const shareToWhatsApp = () => {
+    if (serverPdfUrl) {
+      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(serverPdfUrl)}`, '_blank');
+    } else if (pdfUrl) {
+      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(pdfUrl)}`, '_blank');
+    } else {
+      alert('Пожалуйста, сначала создайте PDF документ.');
+    }
+  };
+
+  const shareByEmail = () => {
+    if (serverPdfUrl) {
+      window.location.href = `mailto:?subject=Документ о недвижимости&body=Ознакомьтесь с документом о недвижимости: ${encodeURIComponent(serverPdfUrl)}`;
+    } else if (pdfUrl) {
+      window.location.href = `mailto:?subject=Документ о недвижимости&body=Ознакомьтесь с документом о недвижимости: ${encodeURIComponent(pdfUrl)}`;
+    } else {
+      alert('Пожалуйста, сначала создайте PDF документ.');
+    }
+  };
+
+  const downloadPdf = () => {
+    if (pdfUrl) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = 'nedvizhimost-document.pdf';
+      link.click();
+    } else {
+      alert('Пожалуйста, сначала создайте PDF документ.');
+    }
   };
 
   return (
@@ -138,6 +309,61 @@ function App() {
             {loading ? 'Создание PDF...' : 'Скачать PDF о недвижимости'}
           </button>
           {!imageReady && <p>Подготовка изображений...</p>}
+          
+          {/* Share bar */}
+          {pdfGenerated && (
+            <div className="share-bar">
+              <p>Поделиться документом:</p>
+              {!serverPdfUrl && (
+                <div className="captcha-container">
+                  <p className="captcha-question">{captcha.question}</p>
+                  <input
+                    type="text"
+                    className="captcha-input"
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    placeholder="Введите ответ"
+                  />
+                  <button 
+                    className="upload-button" 
+                    onClick={() => uploadPdfToServer(pdfBlob)}
+                    disabled={uploading || !captcha.sessionId}
+                  >
+                    {uploading ? "Загрузка..." : "Загрузить для обмена"}
+                  </button>
+                  <button 
+                    className="refresh-captcha" 
+                    onClick={fetchCaptcha}
+                    disabled={uploading}
+                  >
+                    Обновить капчу
+                  </button>
+                </div>
+              )}
+              {uploading && <p className="upload-status">Загрузка документа на сервер...</p>}
+              {serverPdfUrl && <p className="upload-success">Документ успешно загружен и готов к отправке!</p>}
+              <div className="share-buttons">
+                <button className="share-button facebook" onClick={shareToFacebook} title="Поделиться через Facebook">
+                  <i className="share-icon facebook-icon"></i>
+                </button>
+                <button className="share-button vk" onClick={shareToVK} title="Поделиться через ВКонтакте">
+                  <i className="share-icon vk-icon"></i>
+                </button>
+                <button className="share-button telegram" onClick={shareToTelegram} title="Поделиться через Telegram">
+                  <i className="share-icon telegram-icon"></i>
+                </button>
+                <button className="share-button whatsapp" onClick={shareToWhatsApp} title="Поделиться через WhatsApp">
+                  <i className="share-icon whatsapp-icon"></i>
+                </button>
+                <button className="share-button email" onClick={shareByEmail} title="Отправить по Email">
+                  <i className="share-icon email-icon"></i>
+                </button>
+                <button className="share-button download" onClick={downloadPdf} title="Скачать PDF">
+                  <i className="share-icon download-icon"></i>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
       

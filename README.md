@@ -1,3 +1,104 @@
+# React PDF Generator
+
+This is a React application that generates PDF documents about real estate and allows sharing them via social media and messaging platforms.
+
+## Features
+
+- Dynamic PDF generation with html2pdf.js
+- PDF sharing via Facebook, VK, Telegram, WhatsApp, and Email
+- Integrated server for PDF storage and sharing
+
+## Integrated Structure
+
+This project now has both the React frontend and Express backend in a single repository:
+
+```
+react-pdf-test/
+├── node_modules/
+├── public/
+├── server/
+│   └── uploads/
+├── src/
+└── package.json
+```
+
+## Setup
+
+1. Install dependencies:
+```
+npm install
+```
+
+2. Start both the frontend and backend servers together:
+```
+npm run dev
+```
+
+This will:
+- Start the React development server on port 3000
+- Start the Express backend server on port 3001
+- Run both servers concurrently
+
+3. For production:
+```
+npm run build
+NODE_ENV=production npm run server
+```
+
+This will:
+- Build the React app
+- Serve the static React app through the Express server
+- Handle both the frontend and API requests from a single server
+
+## How it Works
+
+### PDF Generation
+
+The application creates PDF documents using html2pdf.js. When you click "Скачать PDF", the app:
+1. Generates the PDF document
+2. Downloads it to your device
+3. Uploads it to the server for sharing
+
+### PDF Sharing
+
+Generated PDFs can be shared via:
+- Facebook
+- VK
+- Telegram
+- WhatsApp
+- Email
+
+The PDF is uploaded to the server, which provides a permanent URL for sharing.
+
+## Development
+
+### Frontend Structure
+
+The React app is in the `src/` directory with components for generating and sharing PDFs.
+
+### Backend Structure
+
+The Express server is in the `server/` directory:
+- `server/index.js`: Main server file with API endpoints
+- `server/uploads/`: Directory for storing uploaded PDFs
+
+### API Endpoints
+
+- `POST /upload`: Upload a PDF file
+- `GET /uploads/:filename`: Retrieve a PDF file
+- `GET /api`: Check server status
+
+## Customization
+
+You can customize the PDF content by modifying the template in `App.js`. The sharing functionality can be extended with additional platforms as needed.
+
+## Important Security Considerations
+
+- For production environments, implement proper authentication and authorization
+- Set file size limits to prevent abuse
+- Consider using HTTPS for secure file transfers
+- Implement rate limiting to prevent DoS attacks
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
