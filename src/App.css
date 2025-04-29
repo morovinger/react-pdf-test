@@ -145,10 +145,18 @@ button:disabled {
 .pdf-container, .pdf-document {
   line-height: 1.4;
   color: #333;
+  font-family: 'Arial', sans-serif;
+  width: 210mm;
+  box-sizing: border-box;
+  padding: 10mm;
+}
+
+.content-section {
+  margin-bottom: 10mm;
+  page-break-inside: avoid;
 }
 
 .pdf-page {
-  page-break-after: always;
   padding: 15mm;
   box-sizing: border-box;
 }

@@ -52,16 +52,15 @@ function App() {
   const generatePdf = () => {
     setLoading(true);
     
-    // Create a container for PDF content
+    // Single continuous content approach to avoid empty pages completely
     const element = document.createElement('div');
     element.className = 'pdf-container';
     element.innerHTML = `
       <div class="pdf-document">
-        <!-- Title page -->
-        <div class="pdf-page">
-          <h1 class="doc-title">Документ о недвижимости</h1>
-          <p class="doc-date">Создано: ${new Date().toLocaleString('ru-RU')}</p>
-          
+        <h1 class="doc-title">Документ о недвижимости</h1>
+        <p class="doc-date">Создано: ${new Date().toLocaleString('ru-RU')}</p>
+        
+        <div class="content-section">
           <h2 class="page-title">${pageOneTitle}</h2>
           ${pageOneContent.split('\n\n').map(p => 
             `<p class="content-paragraph">${p}</p>`
@@ -73,8 +72,7 @@ function App() {
           </div>
         </div>
 
-        <!-- Second page -->
-        <div class="pdf-page">
+        <div class="content-section">
           <h2 class="page-title">${pageTwoTitle}</h2>
           ${pageTwoContent.split('\n\n').map(p => 
             `<p class="content-paragraph">${p}</p>`
@@ -88,67 +86,12 @@ function App() {
       </div>
     `;
 
-    // Add custom styles for PDF generation
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .pdf-container {
-        font-family: 'Arial', sans-serif;
-        color: #333;
-        line-height: 1.4;
-      }
-      .pdf-document {
-        width: 210mm;
-        box-sizing: border-box;
-      }
-      .pdf-page {
-        padding: 15mm;
-        page-break-after: always;
-      }
-      .doc-title {
-        font-size: 24pt;
-        text-align: center;
-        margin-bottom: 10mm;
-        color: #2c3e50;
-      }
-      .doc-date {
-        font-size: 10pt;
-        margin-bottom: 15mm;
-        color: #7f8c8d;
-      }
-      .page-title {
-        font-size: 18pt;
-        margin-bottom: 8mm;
-        color: #2c3e50;
-      }
-      .content-paragraph {
-        text-align: justify;
-        margin-bottom: 4mm;
-        font-size: 11pt;
-      }
-      .image-wrapper {
-        text-align: center;
-        margin: 10mm 0;
-      }
-      .doc-image {
-        max-width: 160mm;
-        max-height: 80mm;
-        object-fit: contain;
-      }
-      .image-caption {
-        font-style: italic;
-        font-size: 9pt;
-        margin-top: 2mm;
-        color: #7f8c8d;
-      }
-    `;
-    
-    // Add elements to the document
-    document.body.appendChild(styleElement);
+    // Append element to document body
     document.body.appendChild(element);
     
-    // Optimized options for better pagination
+    // Simplified options focused on continuous flow
     const options = {
-      margin: [0, 0, 0, 0], // margins handled by padding in the content
+      margin: 10,
       filename: 'nedvizhimost-document.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -163,10 +106,6 @@ function App() {
         format: 'a4', 
         orientation: 'portrait',
         compress: true
-      },
-      pagebreak: { 
-        mode: ['css', 'legacy'],
-        before: '.pdf-page'
       }
     };
     
@@ -178,12 +117,10 @@ function App() {
       .then(() => {
         // Cleanup after completion
         document.body.removeChild(element);
-        document.body.removeChild(styleElement);
         setLoading(false);
       }).catch(error => {
         console.error('PDF generation error:', error);
         document.body.removeChild(element);
-        document.body.removeChild(styleElement);
         setLoading(false);
         alert('Ошибка при создании PDF. Пожалуйста, попробуйте еще раз.');
       });
