@@ -123,13 +123,15 @@ try {
 }
 logToFile('----------------------------------');
 
-// Serve static files from the uploads directory
+// Update the default uploads static file serving to set proper content type
 app.use('/uploads', express.static(uploadDir, {
   setHeaders: function (res, path) {
     // Set proper Content-Type header
     if (path.endsWith('.pdf')) {
+      // For PDFs in normal viewing mode, set correct PDF content type
       res.set('Content-Type', 'application/pdf');
     }
+    
     // Set caching headers to avoid caching issues
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -295,6 +297,29 @@ app.get('/api', (req, res) => {
     isHttps: isHttps,
     files: files
   });
+});
+
+// Add a dedicated download endpoint that forces download
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(uploadDir, filename);
+  
+  logToFile(`Download request for file: ${filePath}`);
+  
+  if (fs.existsSync(filePath)) {
+    // Set headers to force download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    
+    // Create read stream and pipe to response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    logToFile(`Serving file for download: ${filePath}`);
+  } else {
+    logToFile(`File not found for download: ${filePath}`, true);
+    res.status(404).send('File not found');
+  }
 });
 
 // Production setup - serve React app

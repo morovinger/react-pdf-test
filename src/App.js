@@ -13,6 +13,7 @@ function App() {
   const [pdfBlob, setPdfBlob] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
   const [serverPdfUrl, setServerPdfUrl] = useState('');
+  const [serverDownloadUrl, setServerDownloadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
   // Содержимое для первой и второй страницы
@@ -196,8 +197,35 @@ function App() {
       const data = await response.json();
       console.log('Server response:', data);
       
-      // Save the URL returned from the server
-      setServerPdfUrl(data.fileUrl);
+      // Fix URL format if needed - remove any @ symbol at the beginning
+      let fileUrl = data.fileUrl;
+      if (fileUrl && fileUrl.startsWith('@')) {
+        fileUrl = fileUrl.substring(1);
+      }
+      
+      // Convert /uploads/ URL to /download/ URL for automatic downloads
+      if (fileUrl && data.fileName) {
+        // Extract the filename from the URL or use data.fileName
+        const urlParts = fileUrl.split('/');
+        const justFileName = urlParts[urlParts.length - 1];
+        
+        // Create a download URL that will trigger automatic download
+        const downloadBaseUrl = fileUrl.substring(0, fileUrl.lastIndexOf('/uploads/'));
+        const downloadUrl = `${downloadBaseUrl}/download/${justFileName}`;
+        
+        console.log('Download URL:', downloadUrl);
+        data.downloadUrl = downloadUrl;
+        
+        // Keep both URLs - one for viewing, one for downloading
+        setServerPdfUrl(fileUrl);
+      } else {
+        setServerPdfUrl(fileUrl);
+      }
+      
+      // Store download URL for direct downloads
+      if (data.downloadUrl) {
+        setServerDownloadUrl(data.downloadUrl);
+      }
       
       // Verify the file exists on the server after upload
       if (data.fileName) {
@@ -247,7 +275,32 @@ function App() {
           
           const altData = await altResponse.json();
           console.log('Alternative server response:', altData);
-          setServerPdfUrl(altData.fileUrl);
+          
+          // Fix URL format if needed
+          let fileUrl = altData.fileUrl;
+          if (fileUrl && fileUrl.startsWith('@')) {
+            fileUrl = fileUrl.substring(1);
+          }
+          
+          // Convert to download URL
+          if (fileUrl) {
+            const urlParts = fileUrl.split('/');
+            const justFileName = urlParts[urlParts.length - 1];
+            
+            const downloadBaseUrl = fileUrl.substring(0, fileUrl.lastIndexOf('/uploads/'));
+            const downloadUrl = `${downloadBaseUrl}/download/${justFileName}`;
+            
+            console.log('Alternative download URL:', downloadUrl);
+            altData.downloadUrl = downloadUrl;
+          }
+          
+          setServerPdfUrl(fileUrl);
+          
+          // Store download URL for direct downloads
+          if (altData.downloadUrl) {
+            setServerDownloadUrl(altData.downloadUrl);
+          }
+          
           setUploading(false);
           return;
         } catch (altError) {
@@ -301,7 +354,10 @@ function App() {
   };
 
   const downloadPdf = () => {
-    if (pdfUrl) {
+    if (serverDownloadUrl) {
+      // Use the direct download URL from the server
+      window.location.href = serverDownloadUrl;
+    } else if (pdfUrl) {
       const link = document.createElement('a');
       link.href = pdfUrl;
       link.download = 'nedvizhimost-document.pdf';
@@ -361,12 +417,20 @@ function App() {
                 <div className="server-info">
                   <p>Информация о файле на сервере:</p>
                   <code>{serverPdfUrl}</code>
-                  <button 
-                    onClick={() => window.open(serverPdfUrl, '_blank')}
-                    className="test-link-btn"
-                  >
-                    Проверить ссылку
-                  </button>
+                  <div className="server-actions">
+                    <button 
+                      onClick={() => window.open(serverPdfUrl, '_blank')}
+                      className="test-link-btn view-btn"
+                    >
+                      Просмотреть PDF
+                    </button>
+                    <button 
+                      onClick={() => window.location.href = serverDownloadUrl || serverPdfUrl.replace('/uploads/', '/download/')}
+                      className="test-link-btn download-btn"
+                    >
+                      Скачать PDF напрямую
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

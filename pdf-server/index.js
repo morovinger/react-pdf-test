@@ -265,6 +265,29 @@ app.get('/check-file/:filename', (req, res) => {
   }
 });
 
+// Add a dedicated download endpoint that forces download
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(uploadDir, filename);
+  
+  logToFile(`Download request for file: ${filePath}`);
+  
+  if (fs.existsSync(filePath)) {
+    // Set headers to force download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    
+    // Create read stream and pipe to response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    logToFile(`Serving file for download: ${filePath}`);
+  } else {
+    logToFile(`File not found for download: ${filePath}`, true);
+    res.status(404).send('File not found');
+  }
+});
+
 // Add a simple status endpoint
 app.get('/', (req, res) => {
   // List all files in the uploads directory

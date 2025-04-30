@@ -309,6 +309,8 @@ button:disabled {
   color: #333;
   word-break: break-all;
   font-size: 14px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .test-link-btn {
@@ -352,4 +354,27 @@ button:disabled {
   border-radius: 5px;
   padding: 12px;
   margin: 10px 0;
+}
+
+/* Server actions styles */
+.server-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.view-btn {
+  background-color: #007bff;
+}
+
+.view-btn:hover {
+  background-color: #0069d9;
+}
+
+.download-btn {
+  background-color: #28a745;
+}
+
+.download-btn:hover {
+  background-color: #218838;
 }
