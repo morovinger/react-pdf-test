@@ -189,9 +189,18 @@ function App() {
         body: formData,
       });
       
+      // Check for non-JSON responses before trying to parse
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Get the response text to see what came back
+        const responseText = await response.text();
+        console.error('Server returned non-JSON response:', responseText.substring(0, 200) + '...');
+        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+      }
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file');
+        throw new Error(errorData.error || `Failed to upload file: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -263,10 +272,10 @@ function App() {
         const retryFormData = new FormData();
         retryFormData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
         
-        // Use the same server but with a direct IP address if possible
-        const baseUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:4500'
-          : 'http://104.36.85.100:4500';
+        // Try a fallback URL for production environment
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? (`${window.location.protocol}//${window.location.hostname}:4500`)
+          : 'http://localhost:4500';
           
         console.log('Retrying upload to:', baseUrl);
         
@@ -275,8 +284,17 @@ function App() {
           body: retryFormData,
         });
         
+        // Check response format before parsing
+        const contentType = retryResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const responseText = await retryResponse.text();
+          console.error('Retry server returned non-JSON response:', responseText.substring(0, 200) + '...');
+          throw new Error(`Retry server returned non-JSON response: ${retryResponse.status} ${retryResponse.statusText}`);
+        }
+        
         if (!retryResponse.ok) {
-          throw new Error('Retry upload failed');
+          const errorData = await retryResponse.json();
+          throw new Error(errorData.error || `Retry failed: ${retryResponse.status} ${retryResponse.statusText}`);
         }
         
         const retryData = await retryResponse.json();
@@ -308,7 +326,7 @@ function App() {
         }
       } catch (retryError) {
         console.error('Retry upload failed:', retryError);
-        alert(`Не удалось загружать документ на сервер: ${error.message}. Используется локальная версия.`);
+        alert(`Не удалось загружать документ на сервер: ${error.message || 'Ошибка сети'}. Проверьте консоль для деталей. Используется локальная версия.`);
       } finally {
         setUploading(false);
       }

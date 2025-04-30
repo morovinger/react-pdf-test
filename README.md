@@ -134,6 +134,31 @@ Server activity is logged in:
 
 ### Common Issues
 
+**Unexpected token '<', "<!doctype "... is not valid JSON**:
+
+This error occurs when your frontend receives HTML instead of JSON from the server. This typically happens when:
+
+1. The request is being intercepted by a web server (Apache/Nginx) and not reaching your Node.js application
+2. CORS issues are preventing proper communication
+3. The server is returning error pages instead of JSON responses
+
+Solutions:
+- Make sure your Node.js server is running and accessible on the correct port (4500)
+- Check that `SERVER_URL` in your environment matches the actual server address
+- Verify CORS configuration:
+  ```javascript
+  app.use(cors({
+    origin: ['http://your-frontend-domain', 'http://your-server-domain'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true
+  }));
+  ```
+- Ensure all API routes set the proper content type:
+  ```javascript
+  res.setHeader('Content-Type', 'application/json');
+  ```
+- If using a reverse proxy, configure it to properly forward requests to your Node.js server
+
 **Port conflicts**: If port 4000 or 4500 is already in use, update your `.env` file and package.json with different ports.
 
 **Permission issues**: Ensure the server has write access to the `server/uploads` directory:
