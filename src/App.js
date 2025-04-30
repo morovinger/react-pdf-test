@@ -179,7 +179,7 @@ function App() {
       // Get the base URL dynamically
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? window.location.origin 
-        : 'http://localhost:3001';
+        : 'http://localhost:3002';
       
       console.log('Uploading PDF to server:', baseUrl);
       
@@ -252,63 +252,66 @@ function App() {
       setUploading(false);
     } catch (error) {
       console.error('Error uploading PDF:', error);
-      setUploading(false);
       
-      // Try alternative method if the first attempt fails
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        try {
-          console.log('Trying alternative upload method...');
-          // Create a new FormData object for the alternative method
-          const altFormData = new FormData();
-          altFormData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
+      // Implement a retry mechanism instead of using a different server
+      try {
+        console.log('Retrying upload with delay...');
+        // Wait 1 second before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Create a new FormData object for the retry
+        const retryFormData = new FormData();
+        retryFormData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
+        
+        // Use the same server but with a direct IP address if possible
+        const baseUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3002'
+          : 'http://104.36.85.100:3002';
           
-          // Try uploading to the pdf-server instead
-          const altBaseUrl = 'http://104.36.85.100:3001';
-          const altResponse = await fetch(`${altBaseUrl}/upload`, {
-            method: 'POST',
-            body: altFormData,
-          });
-          
-          if (!altResponse.ok) {
-            throw new Error('Alternative upload method failed');
-          }
-          
-          const altData = await altResponse.json();
-          console.log('Alternative server response:', altData);
-          
-          // Fix URL format if needed
-          let fileUrl = altData.fileUrl;
-          if (fileUrl && fileUrl.startsWith('@')) {
-            fileUrl = fileUrl.substring(1);
-          }
-          
-          // Convert to download URL
-          if (fileUrl) {
-            const urlParts = fileUrl.split('/');
-            const justFileName = urlParts[urlParts.length - 1];
-            
-            const downloadBaseUrl = fileUrl.substring(0, fileUrl.lastIndexOf('/uploads/'));
-            const downloadUrl = `${downloadBaseUrl}/download/${justFileName}`;
-            
-            console.log('Alternative download URL:', downloadUrl);
-            altData.downloadUrl = downloadUrl;
-          }
-          
-          setServerPdfUrl(fileUrl);
-          
-          // Store download URL for direct downloads
-          if (altData.downloadUrl) {
-            setServerDownloadUrl(altData.downloadUrl);
-          }
-          
-          setUploading(false);
-          return;
-        } catch (altError) {
-          console.error('Alternative upload method failed:', altError);
+        console.log('Retrying upload to:', baseUrl);
+        
+        const retryResponse = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          body: retryFormData,
+        });
+        
+        if (!retryResponse.ok) {
+          throw new Error('Retry upload failed');
         }
+        
+        const retryData = await retryResponse.json();
+        console.log('Retry response:', retryData);
+        
+        // Fix URL format if needed
+        let fileUrl = retryData.fileUrl;
+        if (fileUrl && fileUrl.startsWith('@')) {
+          fileUrl = fileUrl.substring(1);
+        }
+        
+        // Convert to download URL
+        if (fileUrl) {
+          const urlParts = fileUrl.split('/');
+          const justFileName = urlParts[urlParts.length - 1];
+          
+          const downloadBaseUrl = fileUrl.substring(0, fileUrl.lastIndexOf('/uploads/'));
+          const downloadUrl = `${downloadBaseUrl}/download/${justFileName}`;
+          
+          console.log('Retry download URL:', downloadUrl);
+          retryData.downloadUrl = downloadUrl;
+        }
+        
+        setServerPdfUrl(fileUrl);
+        
+        // Store download URL for direct downloads
+        if (retryData.downloadUrl) {
+          setServerDownloadUrl(retryData.downloadUrl);
+        }
+      } catch (retryError) {
+        console.error('Retry upload failed:', retryError);
+        alert(`Не удалось загружать документ на сервер: ${error.message}. Используется локальная версия.`);
+      } finally {
+        setUploading(false);
       }
-      
-      alert(`Не удалось загрузить документ на сервер: ${error.message}. Используется локальная версия.`);
     }
   };
 

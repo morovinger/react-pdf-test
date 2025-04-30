@@ -7,16 +7,18 @@ This is a React application that generates PDF documents about real estate and a
 - Dynamic PDF generation with html2pdf.js
 - PDF sharing via Facebook, VK, Telegram, WhatsApp, and Email
 - Integrated server for PDF storage and sharing
+- Automatic PDF download functionality
 
 ## Integrated Structure
 
-This project now has both the React frontend and Express backend in a single repository:
+This project has both the React frontend and Express backend in a single repository:
 
 ```
 react-pdf-test/
 ├── node_modules/
 ├── public/
 ├── server/
+│   ├── logs/
 │   └── uploads/
 ├── src/
 └── package.json
@@ -80,13 +82,16 @@ The React app is in the `src/` directory with components for generating and shar
 
 The Express server is in the `server/` directory:
 - `server/index.js`: Main server file with API endpoints
+- `server/logs/`: Directory for server logs
 - `server/uploads/`: Directory for storing uploaded PDFs
 
 ### API Endpoints
 
 - `POST /upload`: Upload a PDF file
-- `GET /uploads/:filename`: Retrieve a PDF file
-- `GET /api`: Check server status
+- `GET /uploads/:filename`: View a PDF file in the browser
+- `GET /download/:filename`: Download a PDF file directly
+- `GET /check-file/:filename`: Verify if a file exists
+- `GET /api`: Check server status and list existing files
 
 ## Customization
 
@@ -98,6 +103,198 @@ You can customize the PDF content by modifying the template in `App.js`. The sha
 - Set file size limits to prevent abuse
 - Consider using HTTPS for secure file transfers
 - Implement rate limiting to prevent DoS attacks
+
+# Environment Variables Setup
+
+This application uses environment variables for configuration.
+
+## Production Environment
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+# Server configuration
+SERVER_URL=http://104.36.85.100:3000
+PORT=3001
+
+# For production, use HTTPS (uncomment when you have a certificate)
+# SERVER_URL=https://104.36.85.100:3000
+# HTTPS=true
+
+# Add any other environment variables your app needs here
+NODE_ENV=production
+```
+
+## Local Development Environment
+
+For local development, create a `.env.development` file or update your `.env` file with:
+
+```
+# Development environment configuration
+SERVER_URL=http://localhost:3001
+PORT=3001
+
+# React development server port
+REACT_APP_PORT=3000
+
+# Other development settings
+NODE_ENV=development
+
+# PDF upload path (relative to server directory)
+UPLOAD_DIR=uploads
+```
+
+When running in development mode, either set the NODE_ENV manually:
+
+```bash
+# For Windows
+set NODE_ENV=development && npm run dev
+
+# For Linux/Mac
+NODE_ENV=development npm run dev
+```
+
+Or use the development script in package.json:
+
+```json
+"scripts": {
+  "dev": "NODE_ENV=development concurrently \"npm run server\" \"npm run start\""
+}
+```
+
+The application will use these values to configure the server. Make sure to adjust the SERVER_URL to match your domain or IP address.
+
+# PDF Download Configuration
+
+## Server Configuration for PDF Downloads
+
+The server is configured to handle PDF files in two ways:
+
+1. **View PDFs in the browser**: 
+   - URL pattern: `/uploads/:filename`
+   - Content-Type: application/pdf
+   - Example: `http://yourdomain.com:3001/uploads/document.pdf`
+
+2. **Force download of PDFs**:
+   - URL pattern: `/download/:filename`
+   - Content-Disposition: attachment
+   - Example: `http://yourdomain.com:3001/download/document.pdf`
+
+When sharing PDFs, you can choose either URL format depending on whether you want recipients to view the PDF in their browser or download it directly.
+
+## PDF File Permissions
+
+To ensure the server can create and serve PDF files, set proper permissions on the uploads directory:
+
+```bash
+# Navigate to your application directory
+cd /path/to/your/app
+
+# Create the uploads directory if it doesn't exist
+mkdir -p server/uploads
+
+# Set proper permissions (replace www-data with your web server user)
+sudo chown -R www-data:www-data server/uploads
+
+# Set directory permissions to 755 (rwxr-xr-x)
+sudo chmod -R 755 server/uploads
+```
+
+# Troubleshooting
+
+## HTTPS Configuration
+
+The error message `blob:http://104.36.85.100:3000/f85c0748-b886-417b-93ec-a713bd592969 was loaded over an insecure connection` indicates a security issue with loading blob URLs over HTTP instead of HTTPS.
+
+### Fix HTTPS Issue:
+
+1. Set up HTTPS on your server using a valid SSL certificate:
+
+```bash
+# Install certbot for Let's Encrypt SSL
+sudo apt-get update
+sudo apt-get install certbot
+
+# Get a certificate for your domain
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Configure your Node.js server to use HTTPS
+```
+
+2. Update your server code to use HTTPS:
+
+```javascript
+const https = require('https');
+const fs = require('fs');
+const app = express();
+
+// Your existing Express setup...
+
+// HTTPS configuration
+const httpsOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/fullchain.pem')
+};
+
+// Create HTTPS server
+https.createServer(httpsOptions, app).listen(3001, () => {
+  console.log('HTTPS Server running on port 3001');
+});
+```
+
+3. Update your environment variables:
+```
+# Set the server URL to use HTTPS
+SERVER_URL=https://yourdomain.com:3001
+```
+
+## Enhanced Logging for Troubleshooting
+
+The server includes enhanced logging that will help diagnose any file permission issues:
+
+1. Server logs are saved to:
+   - `server/logs/server.log` - General server logs
+   - `server/logs/error.log` - Error logs
+
+2. Diagnostic information is logged on server startup:
+   - Current directory
+   - Upload directory location and permissions
+   - File system access tests
+   - Existing files in uploads directory
+
+3. Each upload operation logs:
+   - Incoming file details
+   - File path, size, and permissions
+   - All files in the directory after upload
+   - Any errors encountered during the process
+
+## File Permission Verification
+
+If the server has trouble creating PDF files, check the diagnostic information in the logs:
+
+```bash
+# View the server logs
+cat server/logs/server.log
+
+# Check for errors
+cat server/logs/error.log
+
+# Check directory permissions
+ls -la server/uploads
+```
+
+## Troubleshooting API Endpoints
+
+The server has additional endpoints to help with troubleshooting:
+
+1. `/api` - Check server status and see all files in the uploads directory
+2. `/check-file/:filename` - Verify if a specific file exists on the server 
+
+Example usage:
+```
+GET http://yourdomain.com:3001/api
+GET http://yourdomain.com:3001/check-file/1621345678-987654321-nedvizhimost-document.pdf
+```
 
 # Getting Started with Create React App
 
@@ -169,128 +366,4 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-
-# PDF Server File Permission Fix
-
-## Problem
-The PDF generation works locally but fails on the remote server due to permission issues when creating files in the `uploads` directory.
-
-## Solution
-
-### 1. Check and fix server directory permissions
-
-SSH into your server and run these commands:
-
-```bash
-# Navigate to your application directory
-cd /path/to/your/app
-
-# Create the uploads directory if it doesn't exist
-mkdir -p server/uploads
-mkdir -p pdf-server/uploads
-
-# Set proper permissions (replace www-data with your web server user)
-sudo chown -R www-data:www-data server/uploads
-sudo chown -R www-data:www-data pdf-server/uploads
-
-# Set directory permissions to 755 (rwxr-xr-x)
-sudo chmod -R 755 server/uploads
-sudo chmod -R 755 pdf-server/uploads
-```
-
-# PDF Server Security Configuration
-
-## HTTPS Configuration
-
-The error message `blob:http://104.36.85.100:3000/f85c0748-b886-417b-93ec-a713bd592969 was loaded over an insecure connection` indicates a security issue with loading blob URLs over HTTP instead of HTTPS.
-
-### Fix HTTPS Issue:
-
-1. Set up HTTPS on your server using a valid SSL certificate:
-
-```bash
-# Install certbot for Let's Encrypt SSL
-sudo apt-get update
-sudo apt-get install certbot
-
-# Get a certificate for your domain
-sudo certbot certonly --standalone -d yourdomain.com
-
-# Configure your Node.js server to use HTTPS
-```
-
-2. Update your server code to use HTTPS:
-
-```javascript
-const https = require('https');
-const fs = require('fs');
-const app = express();
-
-// Your existing Express setup...
-
-// HTTPS configuration
-const httpsOptions = {
-  key: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/fullchain.pem')
-};
-
-// Create HTTPS server
-https.createServer(httpsOptions, app).listen(3001, () => {
-  console.log('HTTPS Server running on port 3001');
-});
-```
-
-3. Update your environment variables:
-```
-# Set the server URL to use HTTPS
-SERVER_URL=https://yourdomain.com:3001
-```
-
-## Enhanced Logging for Troubleshooting
-
-The server now includes enhanced logging that will help diagnose any file permission issues:
-
-1. Server logs are saved to:
-   - `server/logs/server.log` - General server logs
-   - `server/logs/error.log` - Error logs
-
-2. Diagnostic information is logged on server startup:
-   - Current directory
-   - Upload directory location and permissions
-   - File system access tests
-   - Existing files in uploads directory
-
-3. Each upload operation logs:
-   - Incoming file details
-   - File path, size, and permissions
-   - All files in the directory after upload
-   - Any errors encountered during the process
-
-## File Permission Verification
-
-If the server has trouble creating PDF files, check the diagnostic information in the logs:
-
-```bash
-# View the server logs
-cat server/logs/server.log
-
-# Check for errors
-cat server/logs/error.log
-
-# Check directory permissions
-ls -la server/uploads
-```
-
-## New Troubleshooting API Endpoints
-
-The server now has additional endpoints to help with troubleshooting:
-
-1. `/api` - Check server status and see all files in the uploads directory
-2. `/check-file/:filename` - Verify if a specific file exists on the server 
-
-Example usage:
-```
-GET http://yourdomain.com:3001/api
-GET http://yourdomain.com:3001/check-file/1621345678-987654321-nedvizhimost-document.pdf
-```
 
