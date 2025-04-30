@@ -69,51 +69,50 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Hardcoded endpoint for nedvizhimost-document.pdf
-app.get('/download-pdf', (req, res) => {
-  // Path to the specific file
-  const staticFilename = 'nedvizhimost-document.pdf';
-  const filePath = path.join(__dirname, 'uploads', staticFilename);
-  
-  console.log(`Download request for hardcoded PDF: ${filePath}`);
+// Create a static nedvizhimost-document.pdf in the uploads directory
+// This ensures we always have a static version to serve
+const staticPdfPath = path.join(uploadDir, 'nedvizhimost-document.pdf');
+// Copy the most recent PDF to the static filename if it doesn't exist
+if (!fs.existsSync(staticPdfPath)) {
+  try {
+    const files = fs.readdirSync(uploadDir);
+    const pdfFiles = files.filter(file => file.endsWith('.pdf'));
+    
+    if (pdfFiles.length > 0) {
+      // Get most recent file based on timestamp in filename
+      const mostRecentFile = pdfFiles.sort().reverse()[0];
+      const sourcePath = path.join(uploadDir, mostRecentFile);
+      
+      // Copy the file to the static name
+      fs.copyFileSync(sourcePath, staticPdfPath);
+      console.log(`Created static PDF file from: ${mostRecentFile}`);
+    }
+  } catch (error) {
+    console.error('Error creating static PDF file:', error);
+  }
+}
+
+// Hardcoded endpoint for static PDF
+app.get('/static-pdf', (req, res) => {
+  console.log(`Serving static PDF: ${staticPdfPath}`);
   
   // Check if file exists
-  if (fs.existsSync(filePath)) {
+  if (fs.existsSync(staticPdfPath)) {
     // Set headers for download
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${staticFilename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="nedvizhimost-document.pdf"`);
     
     // Stream the file
-    const fileStream = fs.createReadStream(filePath);
+    const fileStream = fs.createReadStream(staticPdfPath);
     fileStream.pipe(res);
   } else {
-    // If file doesn't exist, look for the most recent PDF in the uploads folder
-    fs.readdir(path.join(__dirname, 'uploads'), (err, files) => {
-      if (err || files.length === 0) {
-        return res.status(404).send('No PDF files found');
-      }
-      
-      // Filter for PDF files
-      const pdfFiles = files.filter(file => file.endsWith('.pdf'));
-      if (pdfFiles.length === 0) {
-        return res.status(404).send('No PDF files found');
-      }
-      
-      // Get most recent file based on filename (which includes timestamp)
-      const mostRecentFile = pdfFiles.sort().reverse()[0];
-      const recentFilePath = path.join(__dirname, 'uploads', mostRecentFile);
-      
-      console.log(`Serving most recent PDF instead: ${mostRecentFile}`);
-      
-      // Set headers for download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="nedvizhimost-document.pdf"`);
-      
-      // Stream the file
-      const fileStream = fs.createReadStream(recentFilePath);
-      fileStream.pipe(res);
-    });
+    res.status(404).send('Static PDF not found');
   }
+});
+
+// Replace the old dynamic endpoint with a redirect to the static one
+app.get('/download-pdf', (req, res) => {
+  res.redirect('/static-pdf');
 });
 
 // Production setup - serve React app
@@ -133,5 +132,5 @@ app.listen(PORT, () => {
   console.log(`Server URL (hardcoded): ${SERVER_URL}`);
   console.log(`API status available at ${SERVER_URL}/api`);
   console.log(`File upload endpoint: ${SERVER_URL}/upload`);
-  console.log(`Direct PDF download link: ${SERVER_URL}/download-pdf`);
+  console.log(`Static PDF download link: ${SERVER_URL}/static-pdf`);
 }); 
