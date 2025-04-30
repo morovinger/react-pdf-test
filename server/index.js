@@ -98,8 +98,9 @@ app.get('/static-pdf', (req, res) => {
   
   // Check if file exists
   if (fs.existsSync(staticPdfPath)) {
-    // Set headers for download
+    // Force download with appropriate headers
     res.setHeader('Content-Type', 'application/pdf');
+    // Use attachment instead of inline to force download
     res.setHeader('Content-Disposition', `attachment; filename="nedvizhimost-document.pdf"`);
     
     // Stream the file

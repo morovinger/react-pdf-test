@@ -225,7 +225,13 @@ function App() {
   };
 
   const downloadPdf = () => {
-    window.open(staticPdfUrl, '_blank');
+    // Create a link element and trigger download
+    const link = document.createElement('a');
+    link.href = staticPdfUrl;
+    link.download = 'nedvizhimost-document.pdf'; 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
