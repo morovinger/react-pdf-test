@@ -1,369 +1,189 @@
 # React PDF Generator
 
-This is a React application that generates PDF documents about real estate and allows sharing them via social media and messaging platforms.
+A modern React application that dynamically generates PDF documents about real estate and enables sharing via multiple social media platforms.
 
 ## Features
 
-- Dynamic PDF generation with html2pdf.js
-- PDF sharing via Facebook, VK, Telegram, WhatsApp, and Email
-- Integrated server for PDF storage and sharing
-- Automatic PDF download functionality
+- Dynamic PDF generation using html2pdf.js
+- PDF download with automatic file handling
+- Social media sharing (Facebook, VK, Telegram, WhatsApp)
+- Email sharing capability
+- Server-based PDF storage for persistent access
+- Responsive design for all devices
 
-## Integrated Structure
-
-This project has both the React frontend and Express backend in a single repository:
+## Project Structure
 
 ```
 react-pdf-test/
 ├── node_modules/
 ├── public/
 ├── server/
-│   ├── logs/
-│   └── uploads/
-├── src/
+│   ├── logs/      # Server logs
+│   └── uploads/   # PDF storage
+├── src/           # React frontend
 └── package.json
 ```
 
-## Setup
+## Getting Started
 
-1. Install dependencies:
+### Prerequisites
+
+- Node.js (v14+)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd react-pdf-test
 ```
+
+2. Install dependencies:
+```bash
 npm install
 ```
 
-2. Start both the frontend and backend servers together:
+3. Create a `.env` file in the root directory:
 ```
-npm run dev
+# Development environment
+SERVER_URL=http://localhost:3002
+PORT=3002
+NODE_ENV=development
+UPLOAD_DIR=uploads
+DEBUG=true
 ```
 
-This will:
-- Start the React development server on port 3000
-- Start the Express backend server on port 3001
-- Run both servers concurrently
+### Running the Application
 
-3. For production:
+For development (with hot reloading):
+```bash
+npm run dev:local
 ```
+
+This starts:
+- React development server on port 3000
+- Express backend server on port 3002
+
+For production:
+```bash
 npm run build
 NODE_ENV=production npm run server
 ```
 
-This will:
-- Build the React app
-- Serve the static React app through the Express server
-- Handle both the frontend and API requests from a single server
+## How It Works
 
-## How it Works
+### PDF Generation Process
 
-### PDF Generation
-
-The application creates PDF documents using html2pdf.js. When you click "Скачать PDF", the app:
-1. Generates the PDF document
-2. Downloads it to your device
-3. Uploads it to the server for sharing
-
-### PDF Sharing
-
-Generated PDFs can be shared via:
-- Facebook
-- VK
-- Telegram
-- WhatsApp
-- Email
-
-The PDF is uploaded to the server, which provides a permanent URL for sharing.
-
-## Development
-
-### Frontend Structure
-
-The React app is in the `src/` directory with components for generating and sharing PDFs.
-
-### Backend Structure
-
-The Express server is in the `server/` directory:
-- `server/index.js`: Main server file with API endpoints
-- `server/logs/`: Directory for server logs
-- `server/uploads/`: Directory for storing uploaded PDFs
+1. **Creation**: When a user clicks "Скачать PDF", the app generates a PDF using html2pdf.js
+2. **Download**: The PDF is automatically downloaded to the user's device
+3. **Upload**: The PDF is simultaneously uploaded to the server
+4. **Sharing**: Once uploaded, the PDF can be shared via various platforms
 
 ### API Endpoints
 
-- `POST /upload`: Upload a PDF file
-- `GET /uploads/:filename`: View a PDF file in the browser
-- `GET /download/:filename`: Download a PDF file directly
-- `GET /check-file/:filename`: Verify if a file exists
-- `GET /api`: Check server status and list existing files
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/upload` | POST | Upload a PDF file |
+| `/uploads/:filename` | GET | View a PDF in the browser |
+| `/download/:filename` | GET | Download a PDF directly |
+| `/check-file/:filename` | GET | Verify if a file exists |
+| `/api` | GET | Server status and file list |
 
-## Customization
+## Environment Configuration
 
-You can customize the PDF content by modifying the template in `App.js`. The sharing functionality can be extended with additional platforms as needed.
-
-## Important Security Considerations
-
-- For production environments, implement proper authentication and authorization
-- Set file size limits to prevent abuse
-- Consider using HTTPS for secure file transfers
-- Implement rate limiting to prevent DoS attacks
-
-# Environment Variables Setup
-
-This application uses environment variables for configuration.
-
-## Production Environment
-
-Create a `.env` file in the root directory with the following variables:
+### Production Environment
 
 ```
-# Server configuration
-SERVER_URL=http://104.36.85.100:3000
-PORT=3001
-
-# For production, use HTTPS (uncomment when you have a certificate)
-# SERVER_URL=https://104.36.85.100:3000
-# HTTPS=true
-
-# Add any other environment variables your app needs here
+SERVER_URL=http://your-production-domain:3002
+PORT=3002
 NODE_ENV=production
 ```
 
-## Local Development Environment
-
-For local development, create a `.env.development` file or update your `.env` file with:
+### Development Environment
 
 ```
-# Development environment configuration
-SERVER_URL=http://localhost:3001
-PORT=3001
-
-# React development server port
-REACT_APP_PORT=3000
-
-# Other development settings
+SERVER_URL=http://localhost:3002
+PORT=3002
 NODE_ENV=development
-
-# PDF upload path (relative to server directory)
 UPLOAD_DIR=uploads
+DEBUG=true
 ```
 
-When running in development mode, either set the NODE_ENV manually:
+## PDF Download Configuration
 
-```bash
-# For Windows
-set NODE_ENV=development && npm run dev
+The server handles PDF files in two ways:
 
-# For Linux/Mac
-NODE_ENV=development npm run dev
-```
-
-Or use the development script in package.json:
-
-```json
-"scripts": {
-  "dev": "NODE_ENV=development concurrently \"npm run server\" \"npm run start\""
-}
-```
-
-The application will use these values to configure the server. Make sure to adjust the SERVER_URL to match your domain or IP address.
-
-# PDF Download Configuration
-
-## Server Configuration for PDF Downloads
-
-The server is configured to handle PDF files in two ways:
-
-1. **View PDFs in the browser**: 
-   - URL pattern: `/uploads/:filename`
+1. **Browser Viewing**:
+   - URL: `/uploads/:filename`
+   - Example: `http://localhost:3002/uploads/document.pdf`
    - Content-Type: application/pdf
-   - Example: `http://yourdomain.com:3001/uploads/document.pdf`
 
-2. **Force download of PDFs**:
-   - URL pattern: `/download/:filename`
+2. **Direct Download**:
+   - URL: `/download/:filename`
+   - Example: `http://localhost:3002/download/document.pdf`
    - Content-Disposition: attachment
-   - Example: `http://yourdomain.com:3001/download/document.pdf`
 
-When sharing PDFs, you can choose either URL format depending on whether you want recipients to view the PDF in their browser or download it directly.
+## Troubleshooting
 
-## PDF File Permissions
+### Server Logs
 
-To ensure the server can create and serve PDF files, set proper permissions on the uploads directory:
+Server activity is logged in:
+- `server/logs/server.log` - General logs
+- `server/logs/error.log` - Error logs
 
-```bash
-# Navigate to your application directory
-cd /path/to/your/app
+### Common Issues
 
-# Create the uploads directory if it doesn't exist
-mkdir -p server/uploads
+**Port conflicts**: If port 3002 is already in use, update your `.env` file with an available port.
 
-# Set proper permissions (replace www-data with your web server user)
-sudo chown -R www-data:www-data server/uploads
-
-# Set directory permissions to 755 (rwxr-xr-x)
-sudo chmod -R 755 server/uploads
-```
-
-# Troubleshooting
-
-## HTTPS Configuration
-
-The error message `blob:http://104.36.85.100:3000/f85c0748-b886-417b-93ec-a713bd592969 was loaded over an insecure connection` indicates a security issue with loading blob URLs over HTTP instead of HTTPS.
-
-### Fix HTTPS Issue:
-
-1. Set up HTTPS on your server using a valid SSL certificate:
+**Permission issues**: Ensure the server has write access to the `server/uploads` directory:
 
 ```bash
-# Install certbot for Let's Encrypt SSL
-sudo apt-get update
-sudo apt-get install certbot
-
-# Get a certificate for your domain
-sudo certbot certonly --standalone -d yourdomain.com
-
-# Configure your Node.js server to use HTTPS
+# On Linux/Mac
+sudo chown -R $(whoami) server/uploads
+chmod -R 755 server/uploads
 ```
 
-2. Update your server code to use HTTPS:
+**HTTPS errors**: When sharing PDFs, you may see security warnings if using HTTP instead of HTTPS. For production, configure an SSL certificate:
 
 ```javascript
+// server/index.js
 const https = require('https');
 const fs = require('fs');
-const app = express();
 
-// Your existing Express setup...
-
-// HTTPS configuration
 const httpsOptions = {
-  key: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/fullchain.pem')
+  key: fs.readFileSync('/path/to/privkey.pem'),
+  cert: fs.readFileSync('/path/to/fullchain.pem')
 };
 
-// Create HTTPS server
-https.createServer(httpsOptions, app).listen(3001, () => {
-  console.log('HTTPS Server running on port 3001');
+https.createServer(httpsOptions, app).listen(PORT, () => {
+  console.log(`HTTPS Server running on port ${PORT}`);
 });
 ```
 
-3. Update your environment variables:
-```
-# Set the server URL to use HTTPS
-SERVER_URL=https://yourdomain.com:3001
-```
+## Advanced Customization
 
-## Enhanced Logging for Troubleshooting
+### PDF Content
 
-The server includes enhanced logging that will help diagnose any file permission issues:
+Modify the PDF template in `src/App.js` by updating:
+- `pageOneTitle` and `pageOneContent`
+- `pageTwoTitle` and `pageTwoContent`
+- Replace `placeholderImage` with your own image
 
-1. Server logs are saved to:
-   - `server/logs/server.log` - General server logs
-   - `server/logs/error.log` - Error logs
+### Styling
 
-2. Diagnostic information is logged on server startup:
-   - Current directory
-   - Upload directory location and permissions
-   - File system access tests
-   - Existing files in uploads directory
+The app styling is contained in `src/App.css`. Key classes:
+- `.pdf-container` - Main PDF wrapper
+- `.doc-title` - PDF title styling
+- `.content-section` - Content block styling
 
-3. Each upload operation logs:
-   - Incoming file details
-   - File path, size, and permissions
-   - All files in the directory after upload
-   - Any errors encountered during the process
+## License
 
-## File Permission Verification
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-If the server has trouble creating PDF files, check the diagnostic information in the logs:
+## Acknowledgments
 
-```bash
-# View the server logs
-cat server/logs/server.log
-
-# Check for errors
-cat server/logs/error.log
-
-# Check directory permissions
-ls -la server/uploads
-```
-
-## Troubleshooting API Endpoints
-
-The server has additional endpoints to help with troubleshooting:
-
-1. `/api` - Check server status and see all files in the uploads directory
-2. `/check-file/:filename` - Verify if a specific file exists on the server 
-
-Example usage:
-```
-GET http://yourdomain.com:3001/api
-GET http://yourdomain.com:3001/check-file/1621345678-987654321-nedvizhimost-document.pdf
-```
-
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) for PDF generation
+- [Express](https://expressjs.com/) for the server implementation
+- [React](https://reactjs.org/) for the frontend framework
 
