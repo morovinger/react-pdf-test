@@ -69,6 +69,53 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Hardcoded endpoint for nedvizhimost-document.pdf
+app.get('/download-pdf', (req, res) => {
+  // Path to the specific file
+  const staticFilename = 'nedvizhimost-document.pdf';
+  const filePath = path.join(__dirname, 'uploads', staticFilename);
+  
+  console.log(`Download request for hardcoded PDF: ${filePath}`);
+  
+  // Check if file exists
+  if (fs.existsSync(filePath)) {
+    // Set headers for download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${staticFilename}"`);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } else {
+    // If file doesn't exist, look for the most recent PDF in the uploads folder
+    fs.readdir(path.join(__dirname, 'uploads'), (err, files) => {
+      if (err || files.length === 0) {
+        return res.status(404).send('No PDF files found');
+      }
+      
+      // Filter for PDF files
+      const pdfFiles = files.filter(file => file.endsWith('.pdf'));
+      if (pdfFiles.length === 0) {
+        return res.status(404).send('No PDF files found');
+      }
+      
+      // Get most recent file based on filename (which includes timestamp)
+      const mostRecentFile = pdfFiles.sort().reverse()[0];
+      const recentFilePath = path.join(__dirname, 'uploads', mostRecentFile);
+      
+      console.log(`Serving most recent PDF instead: ${mostRecentFile}`);
+      
+      // Set headers for download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="nedvizhimost-document.pdf"`);
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(recentFilePath);
+      fileStream.pipe(res);
+    });
+  }
+});
+
 // Production setup - serve React app
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app build directory
@@ -86,4 +133,5 @@ app.listen(PORT, () => {
   console.log(`Server URL (hardcoded): ${SERVER_URL}`);
   console.log(`API status available at ${SERVER_URL}/api`);
   console.log(`File upload endpoint: ${SERVER_URL}/upload`);
+  console.log(`Direct PDF download link: ${SERVER_URL}/download-pdf`);
 }); 
