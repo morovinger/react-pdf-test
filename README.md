@@ -47,8 +47,8 @@ npm install
 3. Create a `.env` file in the root directory:
 ```
 # Development environment
-SERVER_URL=http://localhost:3002
-PORT=3002
+SERVER_URL=http://localhost:4500
+PORT=4500
 NODE_ENV=development
 UPLOAD_DIR=uploads
 DEBUG=true
@@ -62,8 +62,8 @@ npm run dev:local
 ```
 
 This starts:
-- React development server on port 3000
-- Express backend server on port 3002
+- React development server on port 4000
+- Express backend server on port 4500
 
 For production:
 ```bash
@@ -95,16 +95,16 @@ NODE_ENV=production npm run server
 ### Production Environment
 
 ```
-SERVER_URL=http://your-production-domain:3002
-PORT=3002
+SERVER_URL=http://your-production-domain:4500
+PORT=4500
 NODE_ENV=production
 ```
 
 ### Development Environment
 
 ```
-SERVER_URL=http://localhost:3002
-PORT=3002
+SERVER_URL=http://localhost:4500
+PORT=4500
 NODE_ENV=development
 UPLOAD_DIR=uploads
 DEBUG=true
@@ -116,12 +116,12 @@ The server handles PDF files in two ways:
 
 1. **Browser Viewing**:
    - URL: `/uploads/:filename`
-   - Example: `http://localhost:3002/uploads/document.pdf`
+   - Example: `http://localhost:4500/uploads/document.pdf`
    - Content-Type: application/pdf
 
 2. **Direct Download**:
    - URL: `/download/:filename`
-   - Example: `http://localhost:3002/download/document.pdf`
+   - Example: `http://localhost:4500/download/document.pdf`
    - Content-Disposition: attachment
 
 ## Troubleshooting
@@ -134,7 +134,7 @@ Server activity is logged in:
 
 ### Common Issues
 
-**Port conflicts**: If port 3002 is already in use, update your `.env` file with an available port.
+**Port conflicts**: If port 4000 or 4500 is already in use, update your `.env` file and package.json with different ports.
 
 **Permission issues**: Ensure the server has write access to the `server/uploads` directory:
 

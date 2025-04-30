@@ -179,7 +179,7 @@ function App() {
       // Get the base URL dynamically
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? window.location.origin 
-        : 'http://localhost:3002';
+        : 'http://localhost:4500';
       
       console.log('Uploading PDF to server:', baseUrl);
       
@@ -265,8 +265,8 @@ function App() {
         
         // Use the same server but with a direct IP address if possible
         const baseUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:3002'
-          : 'http://104.36.85.100:3002';
+          ? 'http://localhost:4500'
+          : 'http://104.36.85.100:4500';
           
         console.log('Retrying upload to:', baseUrl);
         
