@@ -198,3 +198,99 @@ sudo chmod -R 755 server/uploads
 sudo chmod -R 755 pdf-server/uploads
 ```
 
+# PDF Server Security Configuration
+
+## HTTPS Configuration
+
+The error message `blob:http://104.36.85.100:3000/f85c0748-b886-417b-93ec-a713bd592969 was loaded over an insecure connection` indicates a security issue with loading blob URLs over HTTP instead of HTTPS.
+
+### Fix HTTPS Issue:
+
+1. Set up HTTPS on your server using a valid SSL certificate:
+
+```bash
+# Install certbot for Let's Encrypt SSL
+sudo apt-get update
+sudo apt-get install certbot
+
+# Get a certificate for your domain
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Configure your Node.js server to use HTTPS
+```
+
+2. Update your server code to use HTTPS:
+
+```javascript
+const https = require('https');
+const fs = require('fs');
+const app = express();
+
+// Your existing Express setup...
+
+// HTTPS configuration
+const httpsOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/fullchain.pem')
+};
+
+// Create HTTPS server
+https.createServer(httpsOptions, app).listen(3001, () => {
+  console.log('HTTPS Server running on port 3001');
+});
+```
+
+3. Update your environment variables:
+```
+# Set the server URL to use HTTPS
+SERVER_URL=https://yourdomain.com:3001
+```
+
+## Enhanced Logging for Troubleshooting
+
+The server now includes enhanced logging that will help diagnose any file permission issues:
+
+1. Server logs are saved to:
+   - `server/logs/server.log` - General server logs
+   - `server/logs/error.log` - Error logs
+
+2. Diagnostic information is logged on server startup:
+   - Current directory
+   - Upload directory location and permissions
+   - File system access tests
+   - Existing files in uploads directory
+
+3. Each upload operation logs:
+   - Incoming file details
+   - File path, size, and permissions
+   - All files in the directory after upload
+   - Any errors encountered during the process
+
+## File Permission Verification
+
+If the server has trouble creating PDF files, check the diagnostic information in the logs:
+
+```bash
+# View the server logs
+cat server/logs/server.log
+
+# Check for errors
+cat server/logs/error.log
+
+# Check directory permissions
+ls -la server/uploads
+```
+
+## New Troubleshooting API Endpoints
+
+The server now has additional endpoints to help with troubleshooting:
+
+1. `/api` - Check server status and see all files in the uploads directory
+2. `/check-file/:filename` - Verify if a specific file exists on the server 
+
+Example usage:
+```
+GET http://yourdomain.com:3001/api
+GET http://yourdomain.com:3001/check-file/1621345678-987654321-nedvizhimost-document.pdf
+```
+

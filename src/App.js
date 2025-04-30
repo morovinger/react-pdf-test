@@ -170,12 +170,15 @@ function App() {
     try {
       // Create a FormData object to send the file
       const formData = new FormData();
-      formData.append('file', new File([pdfBlob], 'nedvizhimost-document.pdf', { type: 'application/pdf' }));
+      const fileName = 'nedvizhimost-document.pdf';
+      formData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
       
       // Get the base URL dynamically
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? window.location.origin 
         : 'http://localhost:3001';
+      
+      console.log('Uploading PDF to server:', baseUrl);
       
       // Send the file to your server endpoint
       const response = await fetch(`${baseUrl}/upload`, {
@@ -189,13 +192,63 @@ function App() {
       }
       
       const data = await response.json();
+      console.log('Server response:', data);
       
       // Save the URL returned from the server
       setServerPdfUrl(data.fileUrl);
+      
+      // Verify the file exists on the server after upload
+      if (data.fileName) {
+        try {
+          const verifyResponse = await fetch(`${baseUrl}/check-file/${data.fileName}`);
+          const verifyData = await verifyResponse.json();
+          
+          if (!verifyData.exists) {
+            console.error('Warning: File uploaded but not found during verification check');
+            alert('Документ был загружен, но есть проблема с доступом к нему. Проверьте настройки сервера.');
+          } else {
+            console.log('File verified on server:', verifyData);
+          }
+        } catch (verifyError) {
+          console.error('Error verifying file on server:', verifyError);
+        }
+      }
+      
+      // Check for HTTPS warning
+      if (data.isHttps === false) {
+        console.warn('Server is using HTTP, not HTTPS. This may cause security issues with blob URLs.');
+      }
+      
       setUploading(false);
     } catch (error) {
       console.error('Error uploading PDF:', error);
       setUploading(false);
+      
+      // Try alternative method if the first attempt fails
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        try {
+          console.log('Trying alternative upload method...');
+          // Try uploading to the pdf-server instead
+          const altBaseUrl = 'http://104.36.85.100:3001';
+          const altResponse = await fetch(`${altBaseUrl}/upload`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!altResponse.ok) {
+            throw new Error('Alternative upload method failed');
+          }
+          
+          const altData = await altResponse.json();
+          console.log('Alternative server response:', altData);
+          setServerPdfUrl(altData.fileUrl);
+          setUploading(false);
+          return;
+        } catch (altError) {
+          console.error('Alternative upload method failed:', altError);
+        }
+      }
+      
       alert(`Не удалось загрузить документ на сервер: ${error.message}. Используется локальная версия.`);
     }
   };
@@ -226,16 +279,6 @@ function App() {
       } else {
         window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=Документ о недвижимости`, '_blank');
       }
-    } else {
-      alert('Пожалуйста, сначала создайте PDF документ.');
-    }
-  };
-  
-  const shareToWhatsApp = () => {
-    if (serverPdfUrl) {
-      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(serverPdfUrl)}`, '_blank');
-    } else if (pdfUrl) {
-      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(pdfUrl)}`, '_blank');
     } else {
       alert('Пожалуйста, сначала создайте PDF документ.');
     }
@@ -280,27 +323,46 @@ function App() {
             <div className="share-bar">
               <p>Поделиться документом:</p>
               {uploading && <p className="upload-status">Загрузка документа на сервер...</p>}
-              {serverPdfUrl && <p className="upload-success">Документ успешно загружен и готов к отправке!</p>}
+              {serverPdfUrl && (
+                <>
+                  <p className="upload-success">Документ успешно загружен и готов к отправке!</p>
+                  {!serverPdfUrl.startsWith('https://') && (
+                    <p className="warning">Внимание: Документ загружен по незащищенному протоколу (HTTP). Для полной функциональности рекомендуется использовать HTTPS.</p>
+                  )}
+                </>
+              )}
+              
               <div className="share-buttons">
-                <button className="share-button facebook" onClick={shareToFacebook} title="Поделиться через Facebook">
-                  <i className="share-icon facebook-icon"></i>
+                <button onClick={shareToFacebook} disabled={uploading || !pdfGenerated}>
+                  Поделиться в Facebook
                 </button>
-                <button className="share-button vk" onClick={shareToVK} title="Поделиться через ВКонтакте">
-                  <i className="share-icon vk-icon"></i>
+                <button onClick={shareToVK} disabled={uploading || !pdfGenerated}>
+                  Поделиться в VK
                 </button>
-                <button className="share-button telegram" onClick={shareToTelegram} title="Поделиться через Telegram">
-                  <i className="share-icon telegram-icon"></i>
+                <button onClick={shareToTelegram} disabled={uploading || !pdfGenerated}>
+                  Отправить в Telegram
                 </button>
-                <button className="share-button whatsapp" onClick={shareToWhatsApp} title="Поделиться через WhatsApp">
-                  <i className="share-icon whatsapp-icon"></i>
+                <button onClick={shareByEmail} disabled={uploading || !pdfGenerated}>
+                  Отправить по Email
                 </button>
-                <button className="share-button email" onClick={shareByEmail} title="Отправить по Email">
-                  <i className="share-icon email-icon"></i>
-                </button>
-                <button className="share-button download" onClick={downloadPdf} title="Скачать PDF">
-                  <i className="share-icon download-icon"></i>
+                <button onClick={downloadPdf} disabled={!pdfGenerated}>
+                  Скачать PDF снова
                 </button>
               </div>
+              
+              {/* Server file info and troubleshooting */}
+              {serverPdfUrl && (
+                <div className="server-info">
+                  <p>Информация о файле на сервере:</p>
+                  <code>{serverPdfUrl}</code>
+                  <button 
+                    onClick={() => window.open(serverPdfUrl, '_blank')}
+                    className="test-link-btn"
+                  >
+                    Проверить ссылку
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
