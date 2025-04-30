@@ -167,10 +167,12 @@ function App() {
   // Function to upload PDF to server
   const uploadPdfToServer = async (pdfBlob) => {
     setUploading(true);
+    // Define fileName outside try block so it's available in catch
+    const fileName = 'nedvizhimost-document.pdf';
+    
     try {
       // Create a FormData object to send the file
       const formData = new FormData();
-      const fileName = 'nedvizhimost-document.pdf';
       formData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
       
       // Get the base URL dynamically
@@ -228,11 +230,15 @@ function App() {
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         try {
           console.log('Trying alternative upload method...');
+          // Create a new FormData object for the alternative method
+          const altFormData = new FormData();
+          altFormData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
+          
           // Try uploading to the pdf-server instead
           const altBaseUrl = 'http://104.36.85.100:3001';
           const altResponse = await fetch(`${altBaseUrl}/upload`, {
             method: 'POST',
-            body: formData,
+            body: altFormData,
           });
           
           if (!altResponse.ok) {
