@@ -21,19 +21,13 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "set PORT=4000 && react-scripts start",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "server": "node server/index.js",
     "dev": "concurrently \"npm run server\" \"npm run start\"",
-    "dev:local": "cross-env NODE_ENV=development concurrently \"npm run server\" \"npm run start\"",
-    "pm2:start": "pm2 start ecosystem.config.js",
-    "pm2:stop": "pm2 stop ecosystem.config.js",
-    "pm2:restart": "pm2 restart ecosystem.config.js",
-    "pm2:status": "pm2 status",
-    "pm2:logs": "pm2 logs",
-    "pm2:server": "pm2 start server/index.js --name pdf-server"
+    "dev:local": "cross-env NODE_ENV=development concurrently \"npm run server\" \"npm run start\""
   },
   "eslintConfig": {
     "extends": [

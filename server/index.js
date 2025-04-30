@@ -1,6 +1,3 @@
-// Load environment variables from .env file
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -9,7 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SERVER_URL = process.env.SERVER_URL || 'http://104.36.85.100:3000';
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3001';
 
 // Create logs directory for persistent logging
 const logsDir = path.join(__dirname, 'logs');
@@ -50,11 +47,9 @@ if (!isHttps) {
   logToFile('Consider configuring HTTPS with a valid certificate for production use.', true);
 }
 
-// Configure CORS to be more specific for production
+// Enable CORS with proper options
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['http://104.36.85.100:4000', 'http://104.36.85.100:4500', 'http://localhost:4000']
-    : '*',
+  origin: '*', // In production, you should specify your domains
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   optionsSuccessStatus: 204
@@ -198,19 +193,9 @@ const upload = multer({
 
 // File upload endpoint with improved error handling
 app.post('/upload', (req, res) => {
-  // Log the request headers to debug
-  logToFile(`Upload request headers: ${JSON.stringify(req.headers)}`);
-  
-  // Set JSON content type first to ensure we don't return HTML
-  res.setHeader('Content-Type', 'application/json');
-  
   logToFile(`Received upload request from: ${req.ip}`);
   
   upload(req, res, function(err) {
-    // Set these headers again right before sending response
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         logToFile(`File too large: ${err.message}`, true);
@@ -252,28 +237,19 @@ app.post('/upload', (req, res) => {
       logToFile(`Failed to read directory after upload: ${readErr.message}`, true);
     }
     
-    // Log what we're sending back
-    const responseData = {
+    res.json({
       message: 'File uploaded successfully',
       fileUrl: fileUrl,
       filePath: req.file.path,
       fileName: req.file.filename,
       fileSize: req.file.size,
       isHttps: isHttps
-    };
-    
-    logToFile(`Sending response: ${JSON.stringify(responseData)}`);
-    
-    // Ensure we're sending JSON by using explicit JSON.stringify
-    res.end(JSON.stringify(responseData));
+    });
   });
 });
 
 // API to check if a file exists
 app.get('/check-file/:filename', (req, res) => {
-  // Set JSON content type first
-  res.setHeader('Content-Type', 'application/json');
-  
   const filename = req.params.filename;
   const filePath = path.join(uploadDir, filename);
   
@@ -297,9 +273,6 @@ app.get('/check-file/:filename', (req, res) => {
 
 // Add a simple status endpoint
 app.get('/api', (req, res) => {
-  // Set JSON content type first
-  res.setHeader('Content-Type', 'application/json');
-  
   // List all files in the uploads directory
   let files = [];
   try {
@@ -351,11 +324,6 @@ app.get('/download/:filename', (req, res) => {
 
 // Production setup - serve React app
 if (process.env.NODE_ENV === 'production') {
-  // Ensure API routes are handled before the catch-all
-  app.get('/api/*', (req, res) => {
-    res.status(404).json({ error: 'API endpoint not found' });
-  });
-  
   // Serve static files from the React app build directory
   app.use(express.static(path.join(__dirname, '../build')));
   
@@ -366,11 +334,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Global error handler - ensure JSON response
+// Global error handler
 app.use((err, req, res, next) => {
-  // Set JSON content type first
-  res.setHeader('Content-Type', 'application/json');
-  
   logToFile(`Unhandled error: ${err.stack || err.message}`, true);
   res.status(500).json({ error: 'Internal server error' });
 });
