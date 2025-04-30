@@ -200,66 +200,32 @@ function App() {
     }
   };
 
-  // Share handlers updated to share the server PDF URL
+  // Hardcoded static PDF URL
+  const staticPdfUrl = 'http://104.36.85.100:3000/static-pdf';
+
+  // Share handlers updated to use the static PDF URL
   const shareToFacebook = () => {
-    const urlToShare = serverPdfUrl || window.location.href;
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlToShare)}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(staticPdfUrl)}`, '_blank');
   };
 
   const shareToVK = () => {
-    const urlToShare = serverPdfUrl || window.location.href;
-    window.open(`https://vk.com/share.php?url=${encodeURIComponent(urlToShare)}`, '_blank');
+    window.open(`https://vk.com/share.php?url=${encodeURIComponent(staticPdfUrl)}`, '_blank');
   };
 
   const shareToTelegram = () => {
-    if (serverPdfUrl) {
-      window.open(`https://t.me/share/url?url=${encodeURIComponent(serverPdfUrl)}&text=Документ о недвижимости`, '_blank');
-    } else if (pdfUrl) {
-      // Fallback to Web Share API or local URL if server URL is not available
-      if (navigator.share) {
-        navigator.share({
-          title: 'Документ о недвижимости',
-          files: [new File([pdfBlob], 'nedvizhimost-document.pdf', { type: 'application/pdf' })]
-        }).catch(() => {
-          window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=Документ о недвижимости`, '_blank');
-        });
-      } else {
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=Документ о недвижимости`, '_blank');
-      }
-    } else {
-      alert('Пожалуйста, сначала создайте PDF документ.');
-    }
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(staticPdfUrl)}&text=Документ о недвижимости`, '_blank');
   };
   
   const shareToWhatsApp = () => {
-    if (serverPdfUrl) {
-      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(serverPdfUrl)}`, '_blank');
-    } else if (pdfUrl) {
-      window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(pdfUrl)}`, '_blank');
-    } else {
-      alert('Пожалуйста, сначала создайте PDF документ.');
-    }
+    window.open(`https://api.whatsapp.com/send?text=Документ о недвижимости: ${encodeURIComponent(staticPdfUrl)}`, '_blank');
   };
 
   const shareByEmail = () => {
-    if (serverPdfUrl) {
-      window.location.href = `mailto:?subject=Документ о недвижимости&body=Ознакомьтесь с документом о недвижимости: ${encodeURIComponent(serverPdfUrl)}`;
-    } else if (pdfUrl) {
-      window.location.href = `mailto:?subject=Документ о недвижимости&body=Ознакомьтесь с документом о недвижимости: ${encodeURIComponent(pdfUrl)}`;
-    } else {
-      alert('Пожалуйста, сначала создайте PDF документ.');
-    }
+    window.location.href = `mailto:?subject=Документ о недвижимости&body=Ознакомьтесь с документом о недвижимости: ${encodeURIComponent(staticPdfUrl)}`;
   };
 
   const downloadPdf = () => {
-    if (pdfUrl) {
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = 'nedvizhimost-document.pdf';
-      link.click();
-    } else {
-      alert('Пожалуйста, сначала создайте PDF документ.');
-    }
+    window.open(staticPdfUrl, '_blank');
   };
 
   return (
