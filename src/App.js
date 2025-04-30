@@ -187,23 +187,39 @@ function App() {
       const response = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Accept': 'application/json'  // Tell server we want JSON response
+        }
       });
       
       // Check for non-JSON responses before trying to parse
       const contentType = response.headers.get('content-type');
+      console.log('Response content type:', contentType);
+      
+      let data;
+      
       if (!contentType || !contentType.includes('application/json')) {
-        // Get the response text to see what came back
+        // Try to handle text/plain responses that might contain JSON
         const responseText = await response.text();
-        console.error('Server returned non-JSON response:', responseText.substring(0, 200) + '...');
-        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+        console.log('Server returned non-JSON response:', responseText.substring(0, 200) + '...');
+        
+        // Try to parse it as JSON anyway
+        try {
+          data = JSON.parse(responseText);
+          console.log('Successfully parsed text response as JSON');
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError);
+          throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+        }
+      } else {
+        // Normal JSON response
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to upload file: ${response.status} ${response.statusText}`);
+        }
+        data = await response.json();
       }
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to upload file: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
       console.log('Server response:', data);
       
       // Fix URL format if needed - remove any @ symbol at the beginning
@@ -282,22 +298,37 @@ function App() {
         const retryResponse = await fetch(`${baseUrl}/upload`, {
           method: 'POST',
           body: retryFormData,
+          headers: {
+            'Accept': 'application/json'  // Tell server we want JSON response
+          }
         });
         
         // Check response format before parsing
         const contentType = retryResponse.headers.get('content-type');
+        console.log('Retry response content type:', contentType);
+        
+        let retryData;
+        
         if (!contentType || !contentType.includes('application/json')) {
+          // Try to handle text/plain responses
           const responseText = await retryResponse.text();
-          console.error('Retry server returned non-JSON response:', responseText.substring(0, 200) + '...');
-          throw new Error(`Retry server returned non-JSON response: ${retryResponse.status} ${retryResponse.statusText}`);
+          console.log('Retry server returned non-JSON response:', responseText.substring(0, 200) + '...');
+          
+          try {
+            retryData = JSON.parse(responseText);
+            console.log('Successfully parsed retry text response as JSON');
+          } catch (parseError) {
+            console.error('Failed to parse retry response as JSON:', parseError);
+            throw new Error(`Retry server returned non-JSON response: ${retryResponse.status} ${retryResponse.statusText}`);
+          }
+        } else {
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json();
+            throw new Error(errorData.error || `Retry failed: ${retryResponse.status} ${retryResponse.statusText}`);
+          }
+          retryData = await retryResponse.json();
         }
         
-        if (!retryResponse.ok) {
-          const errorData = await retryResponse.json();
-          throw new Error(errorData.error || `Retry failed: ${retryResponse.status} ${retryResponse.statusText}`);
-        }
-        
-        const retryData = await retryResponse.json();
         console.log('Retry response:', retryData);
         
         // Fix URL format if needed

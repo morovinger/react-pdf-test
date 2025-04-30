@@ -198,12 +198,19 @@ const upload = multer({
 
 // File upload endpoint with improved error handling
 app.post('/upload', (req, res) => {
+  // Log the request headers to debug
+  logToFile(`Upload request headers: ${JSON.stringify(req.headers)}`);
+  
   // Set JSON content type first to ensure we don't return HTML
   res.setHeader('Content-Type', 'application/json');
   
   logToFile(`Received upload request from: ${req.ip}`);
   
   upload(req, res, function(err) {
+    // Set these headers again right before sending response
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         logToFile(`File too large: ${err.message}`, true);
@@ -245,14 +252,20 @@ app.post('/upload', (req, res) => {
       logToFile(`Failed to read directory after upload: ${readErr.message}`, true);
     }
     
-    res.json({
+    // Log what we're sending back
+    const responseData = {
       message: 'File uploaded successfully',
       fileUrl: fileUrl,
       filePath: req.file.path,
       fileName: req.file.filename,
       fileSize: req.file.size,
       isHttps: isHttps
-    });
+    };
+    
+    logToFile(`Sending response: ${JSON.stringify(responseData)}`);
+    
+    // Ensure we're sending JSON by using explicit JSON.stringify
+    res.end(JSON.stringify(responseData));
   });
 });
 

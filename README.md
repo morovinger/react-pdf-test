@@ -71,6 +71,36 @@ npm run build
 NODE_ENV=production npm run server
 ```
 
+### Running with PM2 (Production)
+
+To run the server in detached mode with PM2:
+
+```bash
+# Build the React app first
+npm run build
+
+# Start the server with PM2
+npm run pm2:server
+# OR use the ecosystem config for more options
+npm run pm2:start
+```
+
+PM2 commands:
+```bash
+npm run pm2:status    # Check status of running processes
+npm run pm2:logs      # View logs
+npm run pm2:stop      # Stop the server
+npm run pm2:restart   # Restart the server
+```
+
+Or use PM2 directly:
+```bash
+pm2 list              # List all processes
+pm2 monit             # Monitor CPU/Memory usage
+pm2 save              # Save current process list
+pm2 startup           # Generate startup script to keep PM2 running after reboot
+```
+
 ## How It Works
 
 ### PDF Generation Process
@@ -158,6 +188,36 @@ Solutions:
   res.setHeader('Content-Type', 'application/json');
   ```
 - If using a reverse proxy, configure it to properly forward requests to your Node.js server
+
+**Server returned non-JSON response: 200 OK**:
+
+This error occurs when the server successfully processes the request (hence the 200 OK), but the response is not recognized as JSON. This can happen because:
+
+1. The server is setting the wrong Content-Type header
+2. A proxy server or middleware is altering the Content-Type
+3. The server is sending valid JSON, but with an incorrect Content-Type like 'text/plain'
+
+Solutions:
+- Set explicit Content-Type headers in both request and response:
+  ```javascript
+  // Client-side
+  fetch('/upload', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+  
+  // Server-side
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(data));  // Use explicit JSON.stringify instead of res.json()
+  ```
+- Add X-Content-Type-Options to prevent content-type sniffing:
+  ```javascript
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  ```
+- Check your proxy configuration (Nginx, Apache) to ensure it preserves Content-Type headers
 
 **Port conflicts**: If port 4000 or 4500 is already in use, update your `.env` file and package.json with different ports.
 
