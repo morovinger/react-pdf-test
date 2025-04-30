@@ -1,3 +1,0 @@
-[2025-04-30T15:32:59.595Z] WARNING: Server is running over HTTP, not HTTPS. This may cause security warnings in the browser when handling blobs.
-[2025-04-30T15:32:59.597Z] Consider configuring HTTPS with a valid certificate for production use.
-[2025-04-30T15:32:59.613Z] WARNING: Server is running on HTTP. For production use, configure HTTPS to avoid security warnings.
