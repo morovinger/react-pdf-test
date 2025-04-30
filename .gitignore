@@ -13,6 +13,7 @@
 
 # server uploads
 /server/uploads
+/server/logs
 /pdf-server/uploads
 
 # misc
