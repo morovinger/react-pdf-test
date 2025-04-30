@@ -169,3 +169,32 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+# PDF Server File Permission Fix
+
+## Problem
+The PDF generation works locally but fails on the remote server due to permission issues when creating files in the `uploads` directory.
+
+## Solution
+
+### 1. Check and fix server directory permissions
+
+SSH into your server and run these commands:
+
+```bash
+# Navigate to your application directory
+cd /path/to/your/app
+
+# Create the uploads directory if it doesn't exist
+mkdir -p server/uploads
+mkdir -p pdf-server/uploads
+
+# Set proper permissions (replace www-data with your web server user)
+sudo chown -R www-data:www-data server/uploads
+sudo chown -R www-data:www-data pdf-server/uploads
+
+# Set directory permissions to 755 (rwxr-xr-x)
+sudo chmod -R 755 server/uploads
+sudo chmod -R 755 pdf-server/uploads
+```
+
