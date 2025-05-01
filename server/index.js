@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = process.env.SERVER_URL || 'http://104.36.85.100:3001';
 
 // Create logs directory for persistent logging
 const logsDir = path.join(__dirname, 'logs');
