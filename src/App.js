@@ -176,10 +176,8 @@ function App() {
       const formData = new FormData();
       formData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
       
-      // Get the base URL dynamically
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? window.location.origin 
-        : 'http://localhost:3001';
+      // Get the base URL from environment variable or fallback to localhost
+      const baseUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
       
       console.log('Uploading PDF to server:', baseUrl);
       
@@ -263,11 +261,7 @@ function App() {
         const retryFormData = new FormData();
         retryFormData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
         
-        // Use the same server but with a direct IP address if possible
-        const baseUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:3001' 
-          : 'http://104.36.85.100:3001';
-          
+        // Use the same baseUrl for consistency
         console.log('Retrying upload to:', baseUrl);
         
         const retryResponse = await fetch(`${baseUrl}/upload`, {

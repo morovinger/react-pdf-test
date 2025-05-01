@@ -531,3 +531,32 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
+# Development Configuration
+
+For development mode with both React and Express servers running, create a `.env` file in the root directory with the following variables:
+
+```
+# Express server configuration
+PORT=3001
+REACT_APP_SERVER_URL=http://localhost:3001
+NODE_ENV=development
+UPLOAD_DIR=uploads
+```
+
+This configuration ensures:
+
+1. Express API server runs on port 3001
+2. React development server runs on port 3000 (default React port)
+3. React app uses the correct server URL for API requests
+4. Both servers run in development mode
+
+## Fixing URL Issues
+
+If you encounter connectivity issues between the React app and Express server, check that:
+
+1. The React app is correctly using `process.env.REACT_APP_SERVER_URL` for API calls
+2. No hardcoded URLs exist in the codebase (especially in App.js)
+3. The Express server is running on the expected port
+
+Remember that in React, only environment variables prefixed with `REACT_APP_` are available to the client-side code.
+
