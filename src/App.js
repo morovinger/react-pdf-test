@@ -171,13 +171,14 @@ function App() {
     // Define fileName outside try block so it's available in catch
     const fileName = 'nedvizhimost-document.pdf';
     
+    // Get the base URL from environment variable or fallback to localhost
+    // Moved outside try blocks to fix scope issues
+    const baseUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
+    
     try {
       // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', new File([pdfBlob], fileName, { type: 'application/pdf' }));
-      
-      // Get the base URL from environment variable or fallback to localhost
-      const baseUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
       
       console.log('Uploading PDF to server:', baseUrl);
       
