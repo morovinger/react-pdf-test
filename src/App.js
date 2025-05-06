@@ -2,19 +2,29 @@ import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
 import './App.css';
 
-// Import placeholder image
+// Import placeholder image and logo
 import placeholderImage from './image.png';
+import logoImage from './logo.png';
 
 function App() {
   const [loading, setLoading] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [imageBase64, setImageBase64] = useState('');
+  const [logoBase64, setLogoBase64] = useState('');
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
   const [serverPdfUrl, setServerPdfUrl] = useState('');
   const [serverDownloadUrl, setServerDownloadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [includeLogo, setIncludeLogo] = useState(false);
+  const [includeDescription, setIncludeDescription] = useState(false);
+  
+  // Test logo - base64 encoded sample logo
+  const testLogoBase64 = 'data:image/png;base64,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';
+  
+  // Test description to add if checkbox is checked
+  const testDescription = 'Это тестовое описание для документа о недвижимости. Оно включается в документ только если соответствующий флажок отмечен. Здесь может содержаться важная информация о данном отчете, правовые оговорки или другие пояснения.';
 
   // Содержимое для первой и второй страницы
   const pageOneTitle = 'Рынок недвижимости в 2025 году';
@@ -37,21 +47,30 @@ function App() {
 
 Стоимость квадратного метра в престижных районах мегаполисов продолжает расти, несмотря на экономические колебания. Эксперты прогнозируют, что эта тенденция сохранится в ближайшие годы, делая инвестиции в недвижимость перспективным направлением.`;
 
-  // Convert image to base64 when component loads
+  // Convert images to base64 when component loads
   useEffect(() => {
-    // Convert the imported image to base64
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const dataURL = canvas.toDataURL('image/png');
-      setImageBase64(dataURL);
-      setImageReady(true);
+    // Convert the imported images to base64
+    const convertImage = (src, setBase64Function) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL('image/png');
+        setBase64Function(dataURL);
+      };
+      img.src = src;
     };
-    img.src = placeholderImage;
+
+    // Convert placeholder image
+    convertImage(placeholderImage, setImageBase64);
+    
+    // Convert logo image
+    convertImage(logoImage, setLogoBase64);
+    
+    setImageReady(true);
   }, []);
 
   // Cleanup PDF URL when component unmounts
@@ -74,6 +93,18 @@ function App() {
       <div class="pdf-document">
         <h1 class="doc-title">Документ о недвижимости</h1>
         <p class="doc-date">Создано: ${new Date().toLocaleString('ru-RU')}</p>
+        
+        ${includeLogo ? `
+        <div class="logo-container" style="text-align: center; margin: 20px 0;">
+          <img src="${logoBase64}" alt="Тестовый логотип" style="max-width: 150px; max-height: 100px;">
+        </div>
+        ` : ''}
+        
+        ${includeDescription ? `
+        <div class="test-description" style="margin: 15px 0; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">
+          <p style="font-style: italic;">${testDescription}</p>
+        </div>
+        ` : ''}
         
         <div class="content-section">
           <h2 class="page-title">${pageOneTitle}</h2>
@@ -369,13 +400,33 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Генератор PDF о недвижимости</h1>
-        <div className="pdf-generator">
+        <div className="pdf-generator">          
           <button 
             onClick={generatePdfAndUpload}
             disabled={loading || !imageReady}
           >
             {loading ? 'Создание PDF...' : 'Скачать PDF о недвижимости'}
           </button>
+          
+          <div className="pdf-options">
+            <label className="checkbox-label">
+              <input 
+                type="checkbox" 
+                checked={includeLogo} 
+                onChange={(e) => setIncludeLogo(e.target.checked)} 
+              />
+              Добавить тестовый логотип
+            </label>
+            <label className="checkbox-label">
+              <input 
+                type="checkbox" 
+                checked={includeDescription} 
+                onChange={(e) => setIncludeDescription(e.target.checked)} 
+              />
+              Добавить тестовое описание
+            </label>
+          </div>
+          
           {!imageReady && <p>Подготовка изображений...</p>}
           
           {/* Share bar */}

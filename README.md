@@ -8,6 +8,7 @@ This is a React application that generates PDF documents about real estate and a
 - PDF sharing via Facebook, VK, Telegram, WhatsApp, and Email
 - Integrated server for PDF storage and sharing
 - Automatic PDF download functionality
+- Custom PDF content with optional logo and description
 
 ## Integrated Structure
 
@@ -224,6 +225,15 @@ The application creates PDF documents using html2pdf.js. When you click "Ска�
 1. Generates the PDF document
 2. Downloads it to your device
 3. Uploads it to the server for sharing
+
+#### PDF Customization Options
+
+The application allows customizing the PDF content with:
+
+- **Test Logo**: When checked, adds a sample logo to the PDF document
+- **Test Description**: When checked, adds a sample descriptive text to the PDF document
+
+These options can be toggled via checkboxes in the user interface before generating the PDF.
 
 ### PDF Sharing
 
