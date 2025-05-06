@@ -4,6 +4,8 @@
 /node_modules
 /.pnp
 .pnp.js
+.env
+.env.development
 
 # testing
 /coverage
@@ -11,9 +13,9 @@
 # production
 /build
 
-# server uploads
+# server uploads and logs
 /server/uploads
-/pdf-server/uploads
+/server/logs
 
 # misc
 .DS_Store
